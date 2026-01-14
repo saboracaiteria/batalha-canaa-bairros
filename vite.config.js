@@ -8,6 +8,7 @@ export default defineConfig({
     host: true // Allow access from mobile devices on local network
   },
   build: {
+    outDir: 'docs', // Build to docs folder for GitHub Pages
     target: 'es2015',
     minify: 'terser',
     sourcemap: false,

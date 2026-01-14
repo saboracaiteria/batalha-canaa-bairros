@@ -9,10 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "three": "^0.160.0",
-    "firebase": "^11.6.1"
+    "firebase": "^11.6.1",
+    "three": "^0.160.0"
   },
   "devDependencies": {
+    "terser": "^5.44.1",
     "vite": "^5.0.0"
   }
 }
