@@ -758,8 +758,8 @@ function animate() {
     playerGroup.position.y += vY;
 
     // Ground check
-    if (playerGroup.position.y < 2) {
-        playerGroup.position.y = 2;
+    if (playerGroup.position.y < 0.2) {
+        playerGroup.position.y = 0.2;
         vY = 0;
         jumps = 0;
     }
