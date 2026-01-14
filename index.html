@@ -174,6 +174,11 @@
             color: white;
         }
 
+        .pause-btn.dark {
+            background: #333;
+            color: #fff;
+        }
+
         .pause-link {
             color: var(--ui-red);
             text-decoration: none;
@@ -330,19 +335,6 @@
             transform: translate(-50%, -50%);
             box-shadow: 0 0 10px white;
         }
-
-        /* Start Screen Layout (Kept for compatibility, but styled) */
-        .btn-main {
-            width: 100%;
-            padding: 15px;
-            background: var(--ui-primary);
-            color: black;
-            font-weight: 900;
-            border: none;
-            text-transform: uppercase;
-            clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
-            margin-top: 10px;
-        }
     </style>
 </head>
 
@@ -350,7 +342,7 @@
 
     <div id="game-container"></div>
 
-    <!-- START SCREEN (Main Menu) -->
+    <!-- START SCREEN (Main Menu - Unified PC/Mobile) -->
     <div id="start-screen" class="overlay-screen">
         <h1 class="pause-title">RESIDENCIAL CANAÃ</h1>
 
@@ -363,17 +355,29 @@
         <div class="pause-btn-row">
             <button class="pause-btn" onclick="switchTab('play')">PARTIDA</button>
             <button class="pause-btn orange" onclick="switchTab('multi')">MULTIPLAYER</button>
+            <button class="pause-btn dark" onclick="switchTab('opts')">OPÇÕES</button>
         </div>
 
-        <!-- TABS (Hidden Logic maintained) -->
+        <!-- TAB: PLAY -->
         <div id="tab-play" style="width: 100%; max-width: 500px;">
             <div class="pause-option">
-                <div class="pause-label">// BOTS NA PARTIDA</div>
-                <input type="range" class="cyber-slider" id="bot-count" min="0" max="30" value="10">
+                <div class="pause-label">// BOTS NA PARTIDA: <span id="val-bots">10</span></div>
+                <input type="range" class="cyber-slider" id="bot-count" min="0" max="30" value="10"
+                    oninput="document.getElementById('val-bots').innerText=this.value">
+            </div>
+            <div class="pause-option">
+                <div class="pause-label">// DIFICULDADE</div>
+                <select id="bot-diff"
+                    style="width: 100%; padding: 10px; background: #222; color: white; border: 1px solid #444;">
+                    <option value="1">CASUAL</option>
+                    <option value="2" selected>NORMAL</option>
+                    <option value="3">VETERANO</option>
+                </select>
             </div>
             <button class="pause-btn yellow" onclick="initGame('solo')" style="width: 100%;">INICIAR OPERAÇÃO</button>
         </div>
 
+        <!-- TAB: MULTIPLAYER -->
         <div id="tab-multi" style="display: none; width: 100%; max-width: 500px;">
             <div class="pause-label">// STATUS: <span id="status-multi-msg"
                     style="color: var(--ui-cyan);">CONECTANDO...</span></div>
@@ -385,11 +389,33 @@
                 disabled>ENTRAR NA OPERAÇÃO</button>
         </div>
 
+        <!-- TAB: OPTIONS (Restored!) -->
+        <div id="tab-opts" style="display: none; width: 100%; max-width: 500px;">
+            <div class="pause-option">
+                <div class="pause-label">// QUALIDADE GRÁFICA</div>
+                <select id="cfg-graphics"
+                    style="width: 100%; padding: 10px; background: #222; color: white; border: 1px solid #444;">
+                    <option value="low" selected>DESEMPENHO (CELULAR)</option>
+                    <option value="high">ALTA QUALIDADE (PC)</option>
+                </select>
+            </div>
+            <div class="pause-option">
+                <div class="pause-label">// SENSIBILIDADE: <span id="val-sens">55</span></div>
+                <input type="range" class="cyber-slider" id="cfg-sens" min="1" max="100" value="55"
+                    oninput="document.getElementById('val-sens').innerText=this.value">
+            </div>
+            <div class="pause-option">
+                <div class="pause-label">// CAMPO DE VISÃO (FOV): <span id="val-fov">75</span></div>
+                <input type="range" class="cyber-slider" id="cfg-fov" min="40" max="100" value="75"
+                    oninput="document.getElementById('val-fov').innerText=this.value">
+            </div>
+        </div>
+
         <div style="margin-top: 20px; font-size: 10px; color: #555;">OPTIMIZED v2.0 (MOBILE FIXED)</div>
     </div>
 
 
-    <!-- PAUSE MENU (New!) -->
+    <!-- PAUSE MENU (In-Game Overlay) -->
     <div id="pause-menu" class="overlay-screen" style="display: none; background: rgba(0,0,0,0.95);">
         <h1 class="pause-title">PAUSA</h1>
 
@@ -417,8 +443,7 @@
 
         <button class="pause-btn yellow" style="width: 100%; max-width: 500px; margin-bottom: 10px;"
             onclick="togglePause()">CONTINUAR OPERAÇÃO</button>
-        <button class="pause-btn red" style="width: 100%; max-width: 500px;"
-            onclick="location.reload()">ABORTAR</button>
+        <button class="pause-btn red" style="width: 100%; max-width: 500px;" onclick="abortGame()">ABORTAR</button>
     </div>
 
 
@@ -431,7 +456,7 @@
         <!-- Top Right Icons -->
         <div id="top-icons">
             <div class="icon-btn" onclick="togglePause()">⚙️</div> <!-- Settings/Pause -->
-            <div class="icon-btn">👁️</div> <!-- Free Look (Placeholder) -->
+            <div class="icon-btn" onclick="toggleCamera()">👁️</div> <!-- Free Look / Toggle Cam -->
             <div class="icon-btn" onclick="toggleFullScreen()">⛶</div> <!-- Fullscreen -->
         </div>
 
@@ -515,10 +540,20 @@
     <!-- UTILS SCRIPT -->
     <script>
         // Toggle Helpers
-        function switchTab(t) {
-            document.getElementById('tab-play').style.display = (t === 'play') ? 'block' : 'none';
-            document.getElementById('tab-multi').style.display = (t === 'multi') ? 'block' : 'none';
+        function switchTab(tab) {
+            const tPlay = document.getElementById('tab-play');
+            const tMulti = document.getElementById('tab-multi');
+            const tOpts = document.getElementById('tab-opts');
+
+            if (tPlay) tPlay.style.display = 'none';
+            if (tMulti) tMulti.style.display = 'none';
+            if (tOpts) tOpts.style.display = 'none';
+
+            if (tab === 'play' && tPlay) tPlay.style.display = 'block';
+            if (tab === 'multi' && tMulti) tMulti.style.display = 'block';
+            if (tab === 'opts' && tOpts) tOpts.style.display = 'block';
         }
+
         function togglePause() {
             const pm = document.getElementById('pause-menu');
             pm.style.display = pm.style.display === 'none' ? 'flex' : 'none';

@@ -425,6 +425,8 @@ function setupGameInput() {
             // Priority: Explicit Joystick Touch
             if (t.target.id === 'joy-zone' || t.target.closest('#joy-zone')) {
                 moveTouchId = t.identifier;
+                // preventDefault is crucial for joystick to not scroll page
+                if (e.cancelable) e.preventDefault();
             }
             // Fallback: Left side of screen (for "invisible joystick" feel)
             else if (t.clientX < window.innerWidth / 2.5 && !t.target.classList.contains('hud-el')) {
@@ -485,16 +487,24 @@ function setupGameInput() {
         if (isEditingHud || isPaused) return;
         for (let t of e.changedTouches) {
             if (t.identifier === moveTouchId) {
-                const r = document.getElementById('joy-zone').getBoundingClientRect();
-                let dx = t.clientX - (r.left + r.width / 2);
-                let dy = t.clientY - (r.top + r.height / 2);
+                const zone = document.getElementById('joy-zone');
+                if (!zone) return;
+
+                const r = zone.getBoundingClientRect();
+                const radius = r.width / 2; // Dynamic radius (approx 70px)
+
+                let dx = t.clientX - (r.left + radius);
+                let dy = t.clientY - (r.top + radius);
                 const d = Math.hypot(dx, dy);
-                if (d > 65) {
-                    dx *= 65 / d;
-                    dy *= 65 / d;
+
+                // Limit to radius
+                if (d > radius) {
+                    dx *= radius / d;
+                    dy *= radius / d;
                 }
+
                 document.getElementById('joy-knob').style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                moveVec.set(dx / 65, -dy / 65);
+                moveVec.set(dx / radius, -dy / radius);
             }
             if (t.identifier === fireTouchId) {
                 cameraYaw -= (t.clientX - fireLastX) * cfg.sens * 0.8;
@@ -1340,6 +1350,19 @@ window.setMode = (mode, btn) => {
 };
 
 // ♻️ END OF LEGACY LOGIC
+
+
+// 🛠️ UI HELPERS (Global Access)
+window.toggleCamera = () => {
+    isFPS = !isFPS;
+    console.log('👁️ Camera Toggled:', isFPS ? "1st Person" : "3rd Person");
+};
+
+window.abortGame = () => {
+    if (confirm("Deseja realmente abortar a missão?")) {
+        location.reload();
+    }
+};
 
 window.game = {
     scene, camera, renderer, playerGroup, bots, bullets, health, armor
