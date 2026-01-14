@@ -40,9 +40,10 @@
             --ui-primary: #fcee0a;
             --ui-cyan: #00f3ff;
             --ui-red: #ff003c;
+            --ui-orange: #ff4400;
             --ui-bg: #0a0a0a;
-            --ui-armor: #00d4ff;
-            --ui-danger: #ff003c;
+            --ui-glass: rgba(0, 0, 0, 0.6);
+            --ui-border: rgba(255, 255, 255, 0.3);
         }
 
         body {
@@ -57,6 +58,14 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* FONTS & UTILS */
+        .cyber-text {
+            text-transform: uppercase;
+            font-weight: 900;
+            font-style: italic;
+        }
+
+        /* SCREENS */
         #game-container {
             position: absolute;
             inset: 0;
@@ -79,187 +88,104 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: center;
             color: white;
             z-index: 1000;
             text-align: center;
-            padding: 40px 20px;
-            overflow-y: auto;
+            padding: 20px;
         }
 
-        .overlay-screen::after {
-            content: "";
-            position: absolute;
-            inset: 15px;
-            border: 1px solid rgba(0, 243, 255, 0.3);
-            pointer-events: none;
-            z-index: 2;
-            clip-path: polygon(0 0, 10% 0, 10% 2px, 0 2px, 0 0, 100% 0, 100% 10%, calc(100% - 2px) 10%, calc(100% - 2px) 0, 100% 0, 100% 100%, 90% 100%, 90% calc(100% - 2px), 100% calc(100% - 2px), 100% 100%, 0 100%, 0 90%, 2px 90%, 2px 100%, 0 100%);
-        }
-
-        .cyber-title-container {
-            margin-bottom: 40px;
-            position: relative;
-            z-index: 10;
-        }
-
-        .cyber-title {
-            font-size: clamp(1.8rem, 8vw, 3.5rem);
+        /* PAUSE MENU STYLE from Screenshot */
+        .pause-title {
+            font-size: 3rem;
             color: var(--ui-primary);
-            font-weight: 900;
-            letter-spacing: 2px;
-            margin: 0;
-            text-transform: uppercase;
-            text-shadow: 3px 3px 0px var(--ui-red);
-            font-style: italic;
+            text-shadow: 4px 4px 0px var(--ui-red);
+            margin-bottom: 30px;
+            letter-spacing: 5px;
         }
 
-        .cyber-subtitle {
-            font-size: 0.8rem;
-            letter-spacing: 8px;
-            color: var(--ui-cyan);
-            text-transform: uppercase;
-            font-weight: bold;
-            margin-top: -5px;
-            text-shadow: 1px 1px 2px black;
-        }
-
-        .config-box {
-            width: 95%;
-            max-width: 500px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            position: relative;
-            z-index: 5;
-        }
-
-        .menu-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            justify-content: center;
-        }
-
-        .tab-btn {
-            padding: 8px 15px;
-            background: transparent;
-            color: #666;
-            border: 1px solid #333;
-            font-size: 0.7rem;
-            font-weight: 900;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: 0.3s;
-            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
-        }
-
-        .tab-btn.active {
-            color: #000;
-            background: var(--ui-primary);
-            border-color: var(--ui-primary);
-        }
-
-        .field {
-            display: flex;
-            flex-direction: column;
-            text-align: left;
-            margin-bottom: 5px;
-        }
-
-        .field label {
-            font-size: 0.65rem;
-            font-weight: 900;
-            color: var(--ui-cyan);
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .field input,
-        .field select {
-            padding: 12px;
-            border: none;
-            background: #111;
-            color: white;
-            font-size: 0.9rem;
-            border-left: 4px solid var(--ui-red);
-            outline: none;
-            transition: 0.3s;
-            font-family: monospace;
-        }
-
-        .field input:focus {
-            background: #1a1a1a;
-            border-left-color: var(--ui-primary);
-        }
-
-        .btn-main {
+        .pause-option {
             width: 100%;
-            padding: 16px;
-            border: none;
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 1rem;
-            text-transform: uppercase;
-            font-weight: 900;
-            letter-spacing: 2px;
-            background: var(--ui-primary);
-            color: #000;
-            clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
-            margin-top: 10px;
+            max-width: 500px;
+            margin-bottom: 15px;
+            text-align: left;
         }
 
-        .btn-main:hover {
-            transform: scale(1.03);
-            filter: brightness(1.1);
-        }
-
-        .btn-main:active {
-            transform: scale(0.98);
-        }
-
-        .mode-selector {
-            display: flex;
-            gap: 5px;
-            margin-top: 5px;
-        }
-
-        .mode-btn {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #444;
-            background: #111;
-            color: #fff;
-            cursor: pointer;
-            font-size: 0.7rem;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .mode-btn.active {
-            border-color: var(--ui-primary);
-            color: var(--ui-primary);
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .dev-footer {
-            margin-top: auto;
-            font-size: 0.6rem;
-            color: #555;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .dev-footer a {
+        .pause-label {
             color: var(--ui-cyan);
-            text-decoration: none;
-            pointer-events: auto;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
         }
 
+        .cyber-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #333;
+            outline: none;
+        }
+
+        .cyber-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--ui-primary);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--ui-primary);
+        }
+
+        .pause-btn-row {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 20px;
+        }
+
+        .pause-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            color: white;
+            font-weight: 900;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+            cursor: pointer;
+            /* Default Blue */
+            background: var(--ui-cyan);
+            color: black;
+        }
+
+        .pause-btn.orange {
+            background: var(--ui-orange);
+            color: white;
+        }
+
+        .pause-btn.yellow {
+            background: var(--ui-primary);
+            color: black;
+        }
+
+        .pause-btn.red {
+            background: var(--ui-red);
+            color: white;
+        }
+
+        .pause-link {
+            color: var(--ui-red);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+
+        /* HUD STYLES from Screenshot */
         #hud {
             position: absolute;
             inset: 0;
@@ -270,83 +196,152 @@
 
         .hud-el {
             position: absolute;
-            background: rgba(0, 0, 0, 0.3);
-            border: 2.5px solid rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: bold;
-            backdrop-filter: blur(8px);
             pointer-events: auto;
             touch-action: none;
-            box-sizing: border-box;
-            text-align: center;
+            user-select: none;
         }
 
-        #crosshair {
+        /* Top Banner */
+        #zone-banner {
             position: absolute;
-            top: 50%;
+            top: 10px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            width: 32px;
-            height: 32px;
-            pointer-events: none;
+            transform: translateX(-50%);
+            background: rgba(0, 255, 0, 0.8);
+            color: black;
+            padding: 5px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            white-space: nowrap;
+        }
+
+        /* Top Right Icons */
+        #top-icons {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 100;
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            border-radius: 50%;
+            color: white;
+            font-size: 20px;
         }
 
-        #crosshair-dot {
-            width: 6px;
-            height: 6px;
-            background: #ff0000;
-            border-radius: 50%;
-            box-shadow: 0 0 10px #ff0000, 0 0 2px #fff;
+        /* Stats Box */
+        #stats-box {
+            position: absolute;
+            top: 20px;
+            right: 80px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: right;
+            color: white;
+            font-size: 12px;
+            line-height: 1.4;
+            backdrop-filter: blur(4px);
         }
 
+        /* Circular Buttons */
+        .hud-btn-circle {
+            background: rgba(0, 0, 0, 0.6);
+            /* Darker background */
+            border: 2px solid #fff;
+            /* White standard border, overridden by style */
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: bold;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Dashed Circle for "Shoot" */
+        .dashed-border {
+            border-style: dashed !important;
+        }
+
+        /* Health Bar (Bottom Center) */
+        #health-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            pointer-events: none;
+        }
+
+        .bar-frame {
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.2s;
+        }
+
+        /* Joypad */
         #joy-zone {
-            bottom: 40px;
-            left: 40px;
-            width: 130px;
-            height: 130px;
+            bottom: 50px;
+            left: 50px;
+            width: 140px;
+            height: 140px;
             border-radius: 50%;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 0, 0.3);
+            /* Yellow tinge */
+            background: radial-gradient(circle, rgba(255, 255, 0, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
         }
 
         #joy-knob {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 60px;
-            height: 60px;
-            background: #fff;
-            border-radius: 50%;
-            pointer-events: none;
+            box-shadow: 0 0 10px white;
         }
 
-        #btn-jump {
-            bottom: 140px;
-            right: 160px;
-            width: 80px;
-            height: 80px;
-        }
-
-        #btn-fire-ads {
-            bottom: 40px;
-            right: 40px;
-            width: 125px;
-            height: 125px;
-            border-color: var(--ui-danger);
-            font-size: 20px;
-            background: radial-gradient(circle, rgba(255, 68, 68, 0.3) 0%, rgba(0, 0, 0, 0.2) 70%);
+        /* Start Screen Layout (Kept for compatibility, but styled) */
+        .btn-main {
+            width: 100%;
+            padding: 15px;
+            background: var(--ui-primary);
+            color: black;
+            font-weight: 900;
+            border: none;
+            text-transform: uppercase;
+            clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -355,250 +350,198 @@
 
     <div id="game-container"></div>
 
+    <!-- START SCREEN (Main Menu) -->
     <div id="start-screen" class="overlay-screen">
-        <div class="cyber-title-container">
-            <h1 class="cyber-title">RESIDENCIAL CANAÃ</h1>
-            <div class="cyber-subtitle">TACTICAL SURVIVAL</div>
+        <h1 class="pause-title">RESIDENCIAL CANAÃ</h1>
+
+        <div class="pause-option">
+            <div class="pause-label">// NOME DO OPERADOR</div>
+            <input type="text" id="player-name" placeholder="DIGITE SEU NOME"
+                style="width: 100%; padding: 10px; background: #222; border: 1px solid #444; color: white;">
         </div>
 
-        <div class="config-box">
-            <div class="menu-tabs">
-                <button class="tab-btn active" onclick="switchTab('play')">PARTIDA</button>
-                <button class="tab-btn" onclick="switchTab('multi')">MULTIPLAYER</button>
-                <button class="tab-btn" onclick="switchTab('opts')">OPÇÕES</button>
-            </div>
-
-            <div id="tab-play" class="full grid" style="display: contents;">
-                <div class="field">
-                    <label>// NOME DO OPERADOR</label>
-                    <input type="text" id="player-name" placeholder="DIGITE SEU NOME..." maxlength="12">
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div class="field">
-                        <label>// Nº SOLDADOS (BOTS)</label>
-                        <input type="number" id="bot-count" value="10" min="0" max="30">
-                    </div>
-                    <div class="field">
-                        <label>// DIFICULDADE</label>
-                        <select id="bot-diff">
-                            <option value="1">Casual</option>
-                            <option value="2" selected>Normal</option>
-                            <option value="3">Veterano</option>
-                        </select>
-                    </div>
-                </div>
-
-                <label
-                    style="font-size: 0.65rem; color: var(--ui-cyan); text-align: left; font-weight: 900; margin-bottom: -10px;">//
-                    MODO DE COMBATE</label>
-                <div class="mode-selector">
-                    <button class="mode-btn active" onclick="setMode('solo', this)">SOLO</button>
-                    <button class="mode-btn" onclick="setMode('duo', this)">DUO</button>
-                    <button class="mode-btn" onclick="setMode('squad', this)">SQUAD</button>
-                </div>
-
-                <button class="btn-main" onclick="initGame('solo')" ontouchstart="initGame('solo')">[ INICIAR SINGLE
-                    PLAYER ]</button>
-            </div>
-
-            <div id="tab-multi" class="full grid hidden" style="display: contents;">
-                <div class="field">
-                    <label>// OPERAÇÃO EM REDE</label>
-                    <div id="status-multi-msg"
-                        style="font-size: 0.6rem; color: var(--ui-cyan); text-align: center; font-weight: bold; margin: 5px 0;">
-                        SINCRONIZANDO SERVIDOR...</div>
-
-                    <div class="room-list" id="room-browser">
-                        <div class="room-item"
-                            style="border-left-color: var(--ui-primary); padding: 15px; flex-direction: column; align-items: flex-start;">
-                            <div style="width: 100%; display: flex; justify-content: space-between;">
-                                <span class="room-name" style="font-size: 0.9rem;">SETOR: CANAÃ</span>
-                                <span class="room-players" id="display-canaa-players"
-                                    style="color: var(--ui-primary); font-weight: bold;">AGUARDE...</span>
-                            </div>
-                            <div id="lobby-agents-list" style="width: 100%;">SINCRONIZANDO AGENTES...</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div class="field">
-                        <label>// Nº BOTS NA SALA</label>
-                        <input type="number" id="bot-count-multi" value="10" min="0" max="30">
-                    </div>
-                    <div class="field">
-                        <label>// SUA EQUIPE</label>
-                        <select id="team-id">
-                            <option value="1">AZUL (ALIADOS)</option>
-                            <option value="2">VERMELHO (INIMIGOS)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label>// IDENTIFICADOR DE REDE</label>
-                    <input type="text" id="room-id" value="CANAÃ" readonly
-                        style="color: var(--ui-primary); background: #050505; border-left-color: var(--ui-cyan);">
-                </div>
-
-                <button id="btn-init-multi" class="btn-main" onclick="initGame('multi')" disabled>[ ENTRAR NA OPERAÇÃO
-                    ]</button>
-            </div>
-
-            <div id="tab-opts" class="full grid hidden" style="display: contents;">
-                <div class="field">
-                    <label>// QUALIDADE GRÁFICA</label>
-                    <select id="cfg-graphics">
-                        <option value="low" selected>DESEMPENHO (CELULAR FRACO)</option>
-                        <option value="high">QUALIDADE (CELULAR FORTE)</option>
-                    </select>
-                </div>
-
-                <div class="field">
-                    <label>// SENSIBILIDADE [<span id="val-sens-start">55</span>]</label>
-                    <input type="range" id="cfg-sens" min="1" max="100" value="55"
-                        oninput="document.getElementById('val-sens-start').innerText=this.value">
-                </div>
-                <div class="field">
-                    <label>// FOV [<span id="val-fov-start">75</span>]</label>
-                    <input type="range" id="cfg-fov" min="40" max="100" value="75"
-                        oninput="document.getElementById('val-fov-start').innerText=this.value">
-                </div>
-
-                <button class="btn-main" style="background: var(--ui-red); color: white; margin-top: 20px;"
-                    onclick="openHudEditor()" ontouchstart="openHudEditor()">
-                    🎨 CUSTOMIZAR INTERFACE (HUD)
-                </button>
-            </div>
+        <div class="pause-btn-row">
+            <button class="pause-btn" onclick="switchTab('play')">PARTIDA</button>
+            <button class="pause-btn orange" onclick="switchTab('multi')">MULTIPLAYER</button>
         </div>
 
-        <div class="dev-footer">
-            // DEVELOPER: <a href="https://www.instagram.com/_nildoxz/" target="_blank">_nildoxz</a><br>
-            CANAÃ DOS CARAJÁS - 2026 | OPTIMIZED v2.0 (MOBILE FIXED)
+        <!-- TABS (Hidden Logic maintained) -->
+        <div id="tab-play" style="width: 100%; max-width: 500px;">
+            <div class="pause-option">
+                <div class="pause-label">// BOTS NA PARTIDA</div>
+                <input type="range" class="cyber-slider" id="bot-count" min="0" max="30" value="10">
+            </div>
+            <button class="pause-btn yellow" onclick="initGame('solo')" style="width: 100%;">INICIAR OPERAÇÃO</button>
         </div>
+
+        <div id="tab-multi" style="display: none; width: 100%; max-width: 500px;">
+            <div class="pause-label">// STATUS: <span id="status-multi-msg"
+                    style="color: var(--ui-cyan);">CONECTANDO...</span></div>
+            <div id="room-browser"
+                style="margin: 10px 0; max-height: 100px; overflow-y: auto; background: #111; padding: 10px;">
+                <!-- Room List -->
+            </div>
+            <button id="btn-init-multi" class="pause-btn yellow" onclick="initGame('multi')" style="width: 100%;"
+                disabled>ENTRAR NA OPERAÇÃO</button>
+        </div>
+
+        <div style="margin-top: 20px; font-size: 10px; color: #555;">OPTIMIZED v2.0 (MOBILE FIXED)</div>
     </div>
 
+
+    <!-- PAUSE MENU (New!) -->
+    <div id="pause-menu" class="overlay-screen" style="display: none; background: rgba(0,0,0,0.95);">
+        <h1 class="pause-title">PAUSA</h1>
+
+        <div class="pause-option">
+            <div class="pause-label">// SENSIBILIDADE</div>
+            <input type="range" class="cyber-slider" id="pause-sens" min="1" max="100" value="55"
+                oninput="updateCfg('sens', this.value)">
+        </div>
+
+        <div class="pause-option">
+            <div class="pause-label">// FOV</div>
+            <input type="range" class="cyber-slider" id="pause-fov" min="40" max="100" value="75"
+                oninput="updateCfg('fov', this.value)">
+        </div>
+
+        <div class="pause-option">
+            <div class="pause-label">// SUPORTE TÁTICO (REAL-TIME BOTS)</div>
+            <div class="pause-btn-row">
+                <button class="pause-btn" onclick="spawnBot(true)">+ BOTS ALIADOS</button>
+                <button class="pause-btn orange" onclick="spawnBot(false)">+ BOTS INIMIGOS</button>
+            </div>
+        </div>
+
+        <a class="pause-link" onclick="openHudEditor()">✏️ REPOSICIONAR BOTÕES</a>
+
+        <button class="pause-btn yellow" style="width: 100%; max-width: 500px; margin-bottom: 10px;"
+            onclick="togglePause()">CONTINUAR OPERAÇÃO</button>
+        <button class="pause-btn red" style="width: 100%; max-width: 500px;"
+            onclick="location.reload()">ABORTAR</button>
+    </div>
+
+
+    <!-- HUD -->
     <div id="hud">
-        <!-- Crosshair -->
-        <div id="crosshair">
-            <div id="crosshair-dot"></div>
+
+        <!-- Top Center Banner -->
+        <div id="zone-banner">ZONA EM MOVIMENTO</div>
+
+        <!-- Top Right Icons -->
+        <div id="top-icons">
+            <div class="icon-btn" onclick="togglePause()">⚙️</div> <!-- Settings/Pause -->
+            <div class="icon-btn">👁️</div> <!-- Free Look (Placeholder) -->
+            <div class="icon-btn" onclick="toggleFullScreen()">⛶</div> <!-- Fullscreen -->
         </div>
 
-        <!-- Mobile Controls -->
-        <div id="btn-jump" class="hud-el">SALTAR</div>
-        <div id="btn-fire-ads" class="hud-el">TIRO<br>ADS</div>
-        <div id="joy-zone" class="hud-el">
-            <div id="joy-knob"></div>
+        <!-- Stats Box -->
+        <div id="stats-box">
+            <div style="color: #ff4400;">INIMIGOS: <span id="count-enemies">10</span></div> <!-- Placeholder logic -->
+            <div style="color: #00f3ff;">ALIADOS: <span id="count-allies">0</span></div>
+            <div style="color: yellow;">ABATES: <span id="count-kills">0</span></div>
         </div>
 
-        <!-- Weapon & Grenade Buttons (original style) -->
-        <div id="btn-weapon" class="hud-el"
-            style="bottom: 300px; left: 160px; width: 80px; height: 80px; background: rgba(255,234,10,0.3); border-color: #fcee0a;">
-            ARMA<br><span style="font-size: 8px;">(FUSE)</span>
-        </div>
-        <div id="btn-grenade" class="hud-el"
-            style="bottom: 390px; left: 160px; width: 80px; height: 80px; background: rgba(0,212,255,0.3); border-color: #00d4ff;">
-            BOMBA<br><span style="font-size: 8px;">(EXPL)</span>
-        </div>
-
-        <!-- Additional Buttons -->
-        <div id="btn-reload" class="hud-el"
-            style="bottom: 200px; left: 85px; width: 70px; height: 70px; background: rgba(255,255,255,0.1); font-size: 9px;">
-            🔄<br>RELOAD
-        </div>
-        <div id="btn-hip" class="hud-el"
-            style="bottom: 250px; right: 180px; width: 90px; height: 90px; background: rgba(255,255,255,0.1); font-size: 10px;">
-            TIRO<br>HIP
-        </div>
-
-        <!-- Health & Armor Bars -->
-        <div style="position: absolute; bottom: 20px; left: 20px; width: 200px; pointer-events: none;">
-            <div style="margin-bottom: 8px;">
-                <div style="font-size: 10px; color: #fff; margin-bottom: 3px; text-shadow: 1px 1px 2px black;">VIDA
-                </div>
-                <div
-                    style="width: 100%; height: 18px; background: rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.3); overflow: hidden;">
-                    <div id="hp-bar"
-                        style="width: 100%; height: 100%; background: linear-gradient(90deg, #ff0000, #ff6b6b); transition: width 0.3s;">
-                    </div>
-                </div>
-            </div>
-            <div>
-                <div style="font-size: 10px; color: #fff; margin-bottom: 3px; text-shadow: 1px 1px 2px black;">ARMADURA
-                </div>
-                <div
-                    style="width: 100%; height: 18px; background: rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.3); overflow: hidden;">
-                    <div id="armor-bar"
-                        style="width: 100%; height: 100%; background: linear-gradient(90deg, #00d4ff, #6bddff); transition: width 0.3s;">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stats (Top Right) -->
-        <div style="position: absolute; top: 20px; right: 20px; text-align: right; pointer-events: none;">
-            <div
-                style="font-size: 16px; color: #fcee0a; font-weight: bold; text-shadow: 2px 2px 4px black; margin-bottom: 8px;">
-                <span style="color: #fff; font-size: 12px;">KILLS:</span> <span id="count-kills">0</span>
-            </div>
-            <div style="font-size: 14px; color: #fff; font-weight: bold; text-shadow: 2px 2px 4px black;">
-                <span style="color: #aaa; font-size: 11px;">VIVOS:</span> <span id="count-alive">10</span>
-            </div>
-        </div>
-
-        <!-- Minimap -->
+        <!-- Minimap (Top Left) -->
         <div style="position: absolute; top: 20px; left: 20px; pointer-events: none;">
-            <canvas id="minimap-canvas" width="100" height="100"
-                style="border: 2px solid rgba(255,255,255,0.4); background: rgba(10,20,40,0.8); border-radius: 4px;"></canvas>
+            <canvas id="minimap-canvas" width="120" height="120"
+                style="border: 2px solid rgba(0,255,0,0.5); border-radius: 10px; background: rgba(0,20,0,0.8);"></canvas>
         </div>
 
         <!-- Kill Log -->
         <div id="kill-log"
-            style="position: absolute; top: 100px; right: 20px; width: 250px; pointer-events: none; font-size: 12px; text-align: right;">
+            style="position: absolute; top: 150px; right: 20px; text-align: right; color: white; font-size: 10px; pointer-events: none;">
         </div>
 
-        <!-- Ammo Counter -->
-        <div style="position: absolute; bottom: 20px; right: 20px; pointer-events: none; text-align: right;">
-            <div style="font-size: 24px; color: #fcee0a; font-weight: bold; text-shadow: 2px 2px 4px black;">
-                <span id="ammo-count">30/180</span>
-            </div>
-            <div style="font-size: 12px; color: #aaa; margin-top: -5px;">MUNIÇÃO</div>
+        <!-- JOYSTICK (Bottom Left) -->
+        <div id="joy-zone" class="hud-el">
+            <div id="joy-knob"></div>
         </div>
+
+        <!-- WEAPON BUTTONS (Left Side) -->
+        <!-- Weapon (Yellow) -->
+        <div id="btn-weapon" class="hud-el hud-btn-circle dashed-border"
+            style="bottom: 250px; left: 180px; width: 70px; height: 70px; border-color: yellow; color: yellow; font-size: 10px;">
+            ARMA<br>(FUSIL)
+        </div>
+        <!-- Grenade (Blue/Cyan) -->
+        <div id="btn-grenade" class="hud-el hud-btn-circle"
+            style="bottom: 330px; left: 220px; width: 60px; height: 60px; border-color: cyan; color: cyan; font-size: 9px;">
+            BOMBA<br>(EXPL)
+        </div>
+
+        <!-- ACTION BUTTONS (Right Side) -->
+        <!-- Shoot ADS (Big Red) -->
+        <div id="btn-fire-ads" class="hud-el hud-btn-circle"
+            style="bottom: 60px; right: 50px; width: 100px; height: 100px; border-color: red; background: rgba(255,0,0,0.2); font-size: 16px;">
+            TIRO<br>ADS
+        </div>
+        <!-- Shoot Hip (Smaller) -->
+        <div id="btn-hip" class="hud-el hud-btn-circle"
+            style="bottom: 140px; right: 160px; width: 70px; height: 70px; border-color: white; font-size: 11px;">
+            TIRO<br>HIP
+        </div>
+        <!-- Jump (Green/White) -->
+        <div id="btn-jump" class="hud-el hud-btn-circle dashed-border"
+            style="bottom: 250px; right: 80px; width: 70px; height: 70px; border-color: #55ff55; font-size: 11px;">
+            SALTAR
+        </div>
+        <!-- Reload (Small) -->
+        <div id="btn-reload" class="hud-el hud-btn-circle"
+            style="bottom: 280px; right: 260px; width: 50px; height: 50px; font-size: 18px; border: 1px solid #aaa;">
+            🔄
+        </div>
+
+        <!-- CROSSHAIR -->
+        <div id="crosshair">
+            <div id="crosshair-dot"></div>
+        </div>
+
+        <!-- HEALTH & ARMOR (Bottom Center) -->
+        <div id="health-container">
+            <!-- Armor (Blue) -->
+            <div class="bar-frame">
+                <div id="armor-bar" class="bar-fill" style="width: 100%; background: #00f3ff;"></div>
+            </div>
+            <!-- Health (Gradient Red/Green) -->
+            <div class="bar-frame" style="height: 12px; margin-top: 2px;">
+                <div id="hp-bar" class="bar-fill"
+                    style="width: 100%; background: linear-gradient(90deg, red, yellow, lime);"></div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- ES Module Import -->
-    <script type="module" src="./src/main.js"></script>
-
-    <!-- Utility Functions -->
+    <!-- UTILS SCRIPT -->
     <script>
-        // Tab switching
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('[onclick*="switchTab"]').forEach(btn => {
-                if (btn.onclick.toString().includes(`'${tab}'`)) {
-                    btn.classList.add('active');
-                }
-            });
-
-            document.getElementById('tab-play').classList.add('hidden');
-            document.getElementById('tab-multi').classList.add('hidden');
-            document.getElementById('tab-opts').classList.add('hidden');
-
-            if (tab === 'play') document.getElementById('tab-play').classList.remove('hidden');
-            if (tab === 'multi') document.getElementById('tab-multi').classList.remove('hidden');
-            if (tab === 'opts') document.getElementById('tab-opts').classList.remove('hidden');
+        // Toggle Helpers
+        function switchTab(t) {
+            document.getElementById('tab-play').style.display = (t === 'play') ? 'block' : 'none';
+            document.getElementById('tab-multi').style.display = (t === 'multi') ? 'block' : 'none';
         }
-
-        // Game mode selection
-        let selectedMode = 'solo';
-        function setMode(mode, btn) {
-            selectedMode = mode;
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+        function togglePause() {
+            const pm = document.getElementById('pause-menu');
+            pm.style.display = pm.style.display === 'none' ? 'flex' : 'none';
+        }
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        }
+        function updateCfg(key, val) {
+            // Updated directly in main.js state if possible, or stored in DOM for polling
+            // For now, let's assume main.js polls these headers or we set a global config object
+            if (window.game && window.cfg) {
+                if (key === 'sens') window.cfg.sens = val * 0.0003;
+                if (key === 'fov') {
+                    window.cfg.fov = parseInt(val);
+                    if (window.game.camera) {
+                        window.game.camera.fov = parseInt(val);
+                        window.game.camera.updateProjectionMatrix();
+                    }
+                }
+            }
         }
     </script>
-
 </body>
 
 </html>
