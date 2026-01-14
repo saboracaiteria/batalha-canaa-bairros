@@ -26,39 +26,35 @@ export function openHudEditor() {
         window._wasStartScreen = true;
     }
 
-    // Create editor overlay
+    // Create editor overlay (Transparent, just for the button)
     const editor = document.createElement('div');
     editor.id = 'hud-editor';
     editor.style.cssText = `
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.5);
         z-index: 10000;
-        display: flex;
-        flex-direction: column;
+        pointer-events: none; /* Let clicks pass through to HUD elements */
     `;
 
     editor.innerHTML = `
-        <div style="background: #fcee0a; padding: 15px; text-align: center;">
-            <h2 style="margin: 0; color: black;">CUSTOMIZAR INTERFACE (HUD)</h2>
-            <p style="margin: 5px 0 0 0; color: black; font-size: 12px;">Arraste os elementos para reposicionar</p>
-        </div>
-        <div style="flex: 1; position: relative;">
-            <button id="save-hud-btn" style="
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                padding: 20px 50px;
-                font-size: 20px;
-                background: #00ff00;
-                border: none;
-                border-radius: 8px;
-                font-weight: bold;
-                cursor: pointer;
-                z-index: 10001;
-            ">💾 GUARDAR HUD</button>
-        </div>
+        <button id="save-hud-btn" style="
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 30px;
+            font-size: 16px;
+            background: #00ff00;
+            color: #000;
+            border: 2px solid #fff;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            pointer-events: auto; /* Enable clicking on this button */
+            box-shadow: 0 0 10px #00ff00;
+            font-family: inherit;
+            text-transform: uppercase;
+        ">💾 SALVAR & SAIR</button>
     `;
 
     document.body.appendChild(editor);
@@ -66,10 +62,11 @@ export function openHudEditor() {
     // Make all HUD elements draggable
     const hudEls = document.querySelectorAll('.hud-el');
     hudEls.forEach(el => {
-        el.style.border = '3px dashed #fcee0a';
-        el.style.pointerEvents = 'auto'; // Force interactable
-        el.style.zIndex = '10001'; // 🚀 CRITICAL: Bring above overlay
-        el.style.position = 'absolute'; // Ensure absolute for dragging
+        el.style.border = '2px dashed #00ff00'; // Green dashed border
+        el.style.backgroundColor = 'rgba(0, 255, 0, 0.2)'; // Slight highlight
+        el.style.pointerEvents = 'auto';
+        el.style.zIndex = '10001';
+        el.style.position = 'absolute';
         makeDraggable(el);
     });
 
@@ -80,15 +77,29 @@ export function openHudEditor() {
     };
 }
 
-// ... makeDraggable ...
-
-
-
 function makeDraggable(element) {
     let isDragging = false;
     let startX, startY, initialLeft, initialTop;
 
-    element.addEventListener('mousedown', (e) => {
+    // MOUSE EVENTS
+    element.addEventListener('mousedown', startDrag);
+    document.addEventListener('mousemove', moveDrag);
+    document.addEventListener('mouseup', endDrag);
+
+    // TOUCH EVENTS (Mobile)
+    element.addEventListener('touchstart', (e) => {
+        if (e.cancelable) e.preventDefault(); // Prevent scroll
+        startDrag(e.touches[0]);
+    }, { passive: false });
+
+    document.addEventListener('touchmove', (e) => {
+        if (isDragging && e.cancelable) e.preventDefault();
+        moveDrag(e.touches[0]);
+    }, { passive: false });
+
+    document.addEventListener('touchend', endDrag);
+
+    function startDrag(e) {
         if (!isEditingHud) return;
         isDragging = true;
         startX = e.clientX;
@@ -99,10 +110,9 @@ function makeDraggable(element) {
         initialTop = rect.top;
 
         element.style.cursor = 'grabbing';
-        e.preventDefault();
-    });
+    }
 
-    document.addEventListener('mousemove', (e) => {
+    function moveDrag(e) {
         if (!isDragging) return;
 
         const dx = e.clientX - startX;
@@ -110,16 +120,16 @@ function makeDraggable(element) {
 
         element.style.left = (initialLeft + dx) + 'px';
         element.style.top = (initialTop + dy) + 'px';
-        element.style.bottom = 'auto';
+        element.style.bottom = 'auto'; // Clear bottom/right to rely on top/left
         element.style.right = 'auto';
-    });
+    }
 
-    document.addEventListener('mouseup', () => {
+    function endDrag() {
         if (isDragging) {
             isDragging = false;
             element.style.cursor = 'grab';
         }
-    });
+    }
 
     element.style.cursor = 'grab';
 }
