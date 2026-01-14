@@ -989,6 +989,39 @@ function shootBullet() {
     bullets.push(bullet);
 }
 
+// 🤖 GENERIC SPAWN BULLET (Used by Bots & functions needing explicit args)
+function spawnBullet(ownerType, startPos, targetPos, ownerId, speedOverride) {
+    if (!bulletPool) return;
+
+    if (ownerType === 'bot') playSfx('shoot'); // Simple SFX for bots
+
+    const bullet = bulletPool.acquire();
+    bullet.position.copy(startPos);
+    bullet.visible = true;
+    bullet.userData.active = true;
+
+    // Calc direction
+    const dir = new THREE.Vector3().subVectors(targetPos, startPos).normalize();
+    const speed = speedOverride || 5; // Default speed
+
+    // Spread for realism (optional)
+    // dir.x += (Math.random() - 0.5) * 0.05;
+    // dir.y += (Math.random() - 0.5) * 0.05;
+    // dir.z += (Math.random() - 0.5) * 0.05;
+    // dir.normalize();
+
+    bullet.userData.vel = dir.multiplyScalar(speed);
+    bullet.userData.life = 120;
+    bullet.userData.owner = ownerType; // 'player' or 'bot'
+    bullet.userData.ownerId = ownerId;
+
+    if (particleSystem) {
+        particleSystem.spawnMuzzleFlash(startPos, dir);
+    }
+
+    bullets.push(bullet);
+}
+
 function updateBullets(deltaTime) {
     for (let i = bullets.length - 1; i >= 0; i--) {
         const bullet = bullets[i];
