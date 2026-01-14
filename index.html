@@ -18,6 +18,16 @@
             return false;
         };
     </script>
+    <!-- IMPORT MAP (Fix for Unbundled/Render Environments) -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
     <!-- ES Module Import with Error Handler -->
     <script type="module" src="./src/main.js"
         onerror="alert('ERRO DE CARREGAMENTO! O arquivo do jogo não foi encontrado.\n\nISSO É UM ERRO DE CACHE!\n\nPor favor, limpe o cache do navegador ou abra em Aba Anônima.')">
