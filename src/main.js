@@ -1092,6 +1092,9 @@ function setupBotsPeriphery() {
 // Initialize game
 // Initialize game
 window.initGame = (mode) => {
+    // VISUAL FEEDBACK FOR CLICK/TOUCH
+    alert("INICIANDO JOGO... (v2.0)");
+
     // 🔊 RESUME AUDIO CONTEXT (Mobile Requirement)
     if (audioCtx.state === 'suspended') {
         audioCtx.resume().then(() => {
