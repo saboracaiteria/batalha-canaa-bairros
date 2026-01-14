@@ -1105,7 +1105,7 @@ function spawnBot(isAlly) {
     const z = Math.sin(angle) * dist;
 
     const bot = CharacterFactory.createHumanoid(isAlly ? 0x3b82f6 : 0xff0000, 'bot' + Math.random());
-    bot.position.set(x, 2, z);
+    bot.position.set(x, 0, z);
     bot.userData.isAlly = isAlly;
     bot.userData.hp = 100;
     bot.userData.vel = new THREE.Vector3();

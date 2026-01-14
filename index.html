@@ -332,6 +332,8 @@
             left: 50%;
             transform: translate(-50%, -50%);
             box-shadow: 0 0 10px white;
+            pointer-events: none;
+            /* Let touches pass to zone */
         }
     </style>
 </head>
@@ -339,6 +341,15 @@
 <body>
 
     <div id="game-container"></div>
+
+    <!-- Tap to Fullscreen (Mobile) -->
+    <script>
+        document.body.addEventListener('click', () => {
+            if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => { });
+            }
+        }, { once: true }); // Only try once
+    </script>
 
     <!-- START SCREEN (Main Menu - Unified PC/Mobile) -->
     <div id="start-screen" class="overlay-screen">

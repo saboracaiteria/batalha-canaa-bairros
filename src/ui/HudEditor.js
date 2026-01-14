@@ -11,13 +11,20 @@ export function initHudEditor() {
 }
 
 export function openHudEditor() {
-    if (!window.isPlaying) {
-        alert('Inicie o jogo primeiro!');
-        return;
-    }
+    // Check removed: Allow editing anytime
+    // if (!window.isPlaying) ...
 
     window.isPaused = true;
     isEditingHud = true;
+
+    // Show HUD if not visible (e.g. from Start Screen)
+    const storedStartDisplay = document.getElementById('start-screen').style.display;
+    if (document.getElementById('hud').style.display === 'none') {
+        document.getElementById('hud').style.display = 'block';
+        document.getElementById('start-screen').style.display = 'none';
+        // Store state to restore later
+        window._wasStartScreen = true;
+    }
 
     // Create editor overlay
     const editor = document.createElement('div');
@@ -60,7 +67,7 @@ export function openHudEditor() {
     const hudEls = document.querySelectorAll('.hud-el');
     hudEls.forEach(el => {
         el.style.border = '3px dashed #fcee0a';
-        el.style.pointerEvents = 'auto';
+        el.style.pointerEvents = 'auto'; // Force interactable
         makeDraggable(el);
     });
 
@@ -70,6 +77,10 @@ export function openHudEditor() {
         closeHudEditor();
     };
 }
+
+// ... makeDraggable ...
+
+
 
 function makeDraggable(element) {
     let isDragging = false;
@@ -153,9 +164,16 @@ function closeHudEditor() {
     // Remove drag styling
     const hudEls = document.querySelectorAll('.hud-el');
     hudEls.forEach(el => {
-        el.style.border = '2.5px solid rgba(255,255,255,0.5)';
+        el.style.border = '';
         el.style.cursor = '';
     });
+
+    // Restore screens if we were on start screen
+    if (window._wasStartScreen) {
+        document.getElementById('hud').style.display = 'none';
+        document.getElementById('start-screen').style.display = 'flex';
+        window._wasStartScreen = false;
+    }
 }
 
 // Global function
