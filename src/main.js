@@ -1240,11 +1240,20 @@ window.initGame = (mode) => {
         missionAccomplished = false;
         playerKills = 0;
 
-        cfg.bots = parseInt(document.getElementById('bot-count').value);
-        cfg.diff = parseInt(document.getElementById('bot-diff').value);
-        cfg.sens = parseInt(document.getElementById('cfg-sens').value) * 0.0003;
-        cfg.fov = parseInt(document.getElementById('cfg-fov').value);
-        cfg.graphics = document.getElementById('cfg-graphics').value;
+        // SAFELY GET CONFIGS (UI Reskin Compatibility)
+        const elBotCount = document.getElementById('bot-count');
+        const elBotDiff = document.getElementById('bot-diff');
+        const elSens = document.getElementById('cfg-sens'); // Moved to Pause?
+        const elFov = document.getElementById('cfg-fov');
+        const elGraphics = document.getElementById('cfg-graphics');
+
+        cfg.bots = elBotCount ? parseInt(elBotCount.value) : 10;
+        cfg.diff = elBotDiff ? parseInt(elBotDiff.value) : 2; // Default Normal
+
+        // Use Defaults if Elements are missing (Pause Menu Only)
+        cfg.sens = (elSens ? parseInt(elSens.value) : 55) * 0.0003;
+        cfg.fov = elFov ? parseInt(elFov.value) : 75;
+        cfg.graphics = elGraphics ? elGraphics.value : 'low';
 
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('game-container').style.display = 'block';
@@ -1306,16 +1315,22 @@ setTimeout(() => {
     console.log('📱 Mobile Touch Events Initialized');
 }, 1000);
 
-// Menu handlers
+// Menu handlers (UPDATED SAFE)
 window.switchTab = (tab) => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     const activeBtn = document.querySelector(`[onclick*="${tab}"]`);
     if (activeBtn) activeBtn.classList.add('active');
 
-    document.getElementById('tab-play').classList.add('hidden');
-    document.getElementById('tab-multi').classList.add('hidden');
-    document.getElementById('tab-opts').classList.add('hidden');
-    document.getElementById('tab-' + tab).classList.remove('hidden');
+    const tPlay = document.getElementById('tab-play');
+    const tMulti = document.getElementById('tab-multi');
+    const tOpts = document.getElementById('tab-opts');
+
+    if (tPlay) tPlay.style.display = 'none';
+    if (tMulti) tMulti.style.display = 'none';
+    if (tOpts) tOpts.style.display = 'none';
+
+    const target = document.getElementById('tab-' + tab);
+    if (target) target.style.display = 'block';
 };
 
 window.setMode = (mode, btn) => {
