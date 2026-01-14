@@ -562,7 +562,7 @@ function setupGameInput() {
                 cameraYaw -= (t.clientX - fireLastX) * cfg.sens * 0.8;
                 cameraPitch -= (t.clientY - fireLastY) * cfg.sens * 1.2;
                 // STRICT CLAMP HERE
-                cameraPitch = Math.max(-1.5, Math.min(1.5, cameraPitch));
+                cameraPitch = Math.max(-1.2, Math.min(1.2, cameraPitch));
 
                 fireLastX = t.clientX;
                 fireLastY = t.clientY;
@@ -571,7 +571,7 @@ function setupGameInput() {
                 cameraYaw -= (t.clientX - lastX) * cfg.sens;
                 cameraPitch -= (t.clientY - lastY) * cfg.sens;
                 // STRICT CLAMP HERE
-                cameraPitch = Math.max(-1.5, Math.min(1.5, cameraPitch));
+                cameraPitch = Math.max(-1.2, Math.min(1.2, cameraPitch));
 
                 lastX = t.clientX;
                 lastY = t.clientY;
@@ -828,7 +828,10 @@ function animate() {
                 const box = obstacleBoxes[i];
                 if (playerGroup.position.y >= box.max.y - 0.2) continue;
                 if (box.userData.isDoor && box.userData.isOpen) continue;
-                if (boxX.intersectsBox(box)) { hitX = true; break; }
+                if (boxX.intersectsBox(box)) {
+                    // hitX = true; // ⚠️ DEBUG: COLLISION DISABLED
+                    // break; 
+                }
             }
             // Z Check
             const boxZ = new THREE.Box3().setFromCenterAndSize(tempVec.set(playerGroup.position.x, playerGroup.position.y + 2.5, finalZ), pBoxSize);
@@ -836,7 +839,10 @@ function animate() {
                 const box = obstacleBoxes[i];
                 if (playerGroup.position.y >= box.max.y - 0.2) continue;
                 if (box.userData.isDoor && box.userData.isOpen) continue;
-                if (boxZ.intersectsBox(box)) { hitZ = true; break; }
+                if (boxZ.intersectsBox(box)) {
+                    // hitZ = true; // ⚠️ DEBUG: COLLISION DISABLED
+                    // break; 
+                }
             }
             if (!hitX) playerGroup.position.x = finalX;
             if (!hitZ) playerGroup.position.z = finalZ;
@@ -868,7 +874,7 @@ function animate() {
         }
     });
 
-    // Camera - PORTED LOGIC
+    // Camera - PORTED LOGIC (WITH CLAMP FIX)
     if (isFPS) {
         charModel.visible = false;
         camera.position.copy(playerGroup.position).add(tempVec.set(0, 10.6, 0));
@@ -883,7 +889,13 @@ function animate() {
         const cz = Math.cos(cameraYaw) * Math.cos(-cameraPitch) * dist;
         const cy = Math.sin(-cameraPitch) * dist;
 
-        camera.position.copy(playerGroup.position).add(tempVec.set(cx, cy + 10.6, cz)).add(rightDir.clone().multiplyScalar(8.0));
+        const targetCamY = playerGroup.position.y + 10.6 + cy;
+        // 🛡️ CLAMP CAMERA Y: Prevent going under ground (assuming ground ~0 or floorY)
+        const safeCamY = Math.max(playerGroup.position.y + 2.0, targetCamY);
+
+        camera.position.copy(playerGroup.position).add(tempVec.set(cx, 0, cz)).add(rightDir.clone().multiplyScalar(8.0));
+        camera.position.y = safeCamY;
+
         camera.lookAt(
             playerGroup.position.x + rightDir.x * 8.0,
             playerGroup.position.y + 3.5,
