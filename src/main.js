@@ -422,9 +422,15 @@ function setupGameInput() {
     window.addEventListener('touchstart', e => {
         if (isEditingHud || isPaused) return;
         for (let t of e.changedTouches) {
-            if (t.clientX < window.innerWidth / 2.5) {
+            // Priority: Explicit Joystick Touch
+            if (t.target.id === 'joy-zone' || t.target.closest('#joy-zone')) {
                 moveTouchId = t.identifier;
-            } else if (t.target.closest('#btn-fire-ads')) {
+            }
+            // Fallback: Left side of screen (for "invisible joystick" feel)
+            else if (t.clientX < window.innerWidth / 2.5 && !t.target.classList.contains('hud-el')) {
+                moveTouchId = t.identifier;
+            }
+            else if (t.target.closest('#btn-fire-ads')) {
                 fireTouchId = t.identifier;
                 fireLastX = t.clientX;
                 fireLastY = t.clientY;
@@ -432,13 +438,22 @@ function setupGameInput() {
                 isADS = true;
                 camera.fov = currentWeapon === 'SNIPER' ? 12 : 30;
                 camera.updateProjectionMatrix();
+                if (currentWeapon === 'SNIPER') document.getElementById('sniper-scope').style.display = 'block';
+            } else if (t.target.closest('#btn-fire-hip')) {
+                fireTouchId = t.identifier;
+                fireLastX = t.clientX;
+                fireLastY = t.clientY;
+                isShooting = true;
+                isADS = false; // Hipfire
+                camera.fov = cfg.fov;
+                camera.updateProjectionMatrix();
             } else if (!t.target.classList.contains('hud-el')) {
                 lookTouchId = t.identifier;
                 lastX = t.clientX;
                 lastY = t.clientY;
             }
         }
-    });
+    }, { passive: false });
 
     document.querySelectorAll('.hud-el').forEach(el => {
         el.addEventListener('pointerdown', e => {
