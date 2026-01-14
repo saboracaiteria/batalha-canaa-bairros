@@ -73,54 +73,29 @@ function playSfx(type) {
 }
 
 // Criar mundo completo usando função original
+// Criar mundo completo usando lógica do Backup
 function createWorld() {
     const mapSize = 1000;
-    const floor = new THREE.Mesh(
-        new THREE.PlaneGeometry(mapSize * 2.5, mapSize * 2.5),
-        new THREE.MeshStandardMaterial({ color: 0x3d7a3d, roughness: 1 })
-    );
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    floor.userData.isGround = true;
-    scene.add(floor);
-    obstacles.push(floor);
-
-    createMountains();
-    createLighthouse(0, 0);
-
-    // Roads
-    const roadMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
-    const gridSpacing = 160;
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(mapSize * 2.5, mapSize * 2.5), new THREE.MeshStandardMaterial({ color: 0x3d7a3d, roughness: 1 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; floor.userData.isGround = true;
+    scene.add(floor); obstacles.push(floor); createMountains(); createLighthouse(0, 0);
+    const roadMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 }); const gridSpacing = 160;
     for (let i = -4; i <= 4; i++) {
-        const roadH = new THREE.Mesh(new THREE.PlaneGeometry(2500, 26), roadMat);
-        roadH.rotation.x = -Math.PI / 2;
-        roadH.position.set(0, 0.1, i * gridSpacing);
-        roadH.userData.isGround = true;
-        scene.add(roadH);
-
-        const roadV = new THREE.Mesh(new THREE.PlaneGeometry(26, 2500), roadMat);
-        roadV.rotation.x = -Math.PI / 2;
-        roadV.position.set(i * gridSpacing, 0.1, 0);
-        roadV.userData.isGround = true;
-        scene.add(roadV);
-
+        const roadH = new THREE.Mesh(new THREE.PlaneGeometry(2500, 26), roadMat); roadH.rotation.x = -Math.PI / 2; roadH.position.set(0, 0.1, i * gridSpacing); roadH.userData.isGround = true; scene.add(roadH);
+        const roadV = new THREE.Mesh(new THREE.PlaneGeometry(26, 2500), roadMat); roadV.rotation.x = -Math.PI / 2; roadV.position.set(i * gridSpacing, 0.1, 0); roadV.userData.isGround = true; scene.add(roadV);
         obstacles.push(roadH, roadV);
     }
-
-    // Trees
-    for (let i = 0; i < 250; i++) {
-        const tx = (Math.random() - 0.5) * 2000;
-        const tz = (Math.random() - 0.5) * 2000;
-        if (Math.hypot(tx, tz) > 60) createTree(tx, tz);
-    }
-
-    // Houses
+    for (let i = 0; i < 250; i++) { const tx = (Math.random() - 0.5) * 2000; const tz = (Math.random() - 0.5) * 2000; if (Math.hypot(tx, tz) > 60) createTree(tx, tz); }
     let hIdx = 0;
+    // Casas centrais
     for (let a = 0; a < 4; a++) {
+        // ROTACIONADAS 45 GRAUS (+ PI/4) PARA SAIR DO EIXO DAS RUAS
         const ang = (a / 4) * Math.PI * 2 + Math.PI / 4;
+        // RAIO AUMENTADO PARA 85 PARA AFASTAR DO CENTRO
         createDetailedHouse(Math.cos(ang) * 85, Math.sin(ang) * 85, hIdx++);
     }
 
+    // Casas da grade (Tirando das ruas)
+    // Offset alterado para gridSpacing / 2 (80) para centrar no quarteirão
     const gridOffset = 80;
     for (let rx = -2; rx <= 2; rx++) {
         for (let rz = -2; rz <= 2; rz++) {
@@ -211,6 +186,7 @@ function createLighthouse(x, z) {
     obstacles.push(base, top, dome);
 }
 
+// 🏗️ PORTED HOUSE GENERATION LOGIC (FULL)
 function createDetailedHouse(x, z, houseId) {
     const buildingGroup = new THREE.Group();
     const geometries = {
@@ -220,97 +196,162 @@ function createDetailedHouse(x, z, houseId) {
         madeira: [],
         saco: []
     };
-    const invisibleMat = new THREE.MeshBasicMaterial({ visible: false });
+    const invisibleMat = new THREE.MeshBasicMaterial({ visible: false }); // FÍSICA INVISÍVEL
 
+    // --- 1. MATERIAIS ---
     const matParede = new THREE.MeshStandardMaterial({ color: 0xbfae95, roughness: 1.0, side: THREE.DoubleSide });
     const matConcreto = new THREE.MeshStandardMaterial({ color: 0x8c8c7e, roughness: 0.9, side: THREE.DoubleSide });
     const matMetal = new THREE.MeshStandardMaterial({ color: 0x5a3a2a, metalness: 0.3, roughness: 0.8, side: THREE.DoubleSide });
     const matMadeira = new THREE.MeshStandardMaterial({ color: 0x6F4E37, roughness: 1.0 });
     const matSaco = new THREE.MeshStandardMaterial({ color: 0x9e9578, roughness: 1.0 });
 
-    function createBox(w, h, d, px, py, pz, materialType) {
+    // Helper interno para criar blocos
+    function createBox(w, h, d, px, py, pz, materialType, customMat = null) {
         const geo = new THREE.BoxGeometry(w, h, d);
-        const mesh = new THREE.Mesh(geo, invisibleMat);
+        const mesh = new THREE.Mesh(geo, invisibleMat); // Usa material invisível para colisão
         mesh.position.set(px, py, pz);
-        mesh.updateMatrix();
+        mesh.updateMatrix(); // Importante para o merge
 
-        if (materialType) {
+        // 1. SALVA PARA FUSÃO VISUAL (Cópia da geometria transformada)
+        if (materialType && !customMat) {
             const clonedGeo = geo.clone();
             clonedGeo.applyMatrix4(mesh.matrix);
             geometries[materialType].push(clonedGeo);
         }
 
+        // 2. ADICIONA À COLISÃO DO JOGO (OBJETO FANTASMA)
         mesh.userData.isWall = true;
         if (py > 4) mesh.userData.isRoof = true;
         obstacles.push(mesh);
+
+        // 3. ADICIONA AO GRUPO (MAS INVISÍVEL)
         buildingGroup.add(mesh);
         return mesh;
     }
 
-    // Térreo
-    createBox(6, 3.5, 0.2, 0, 1.75, -2.4, 'parede');
-    createBox(0.2, 3.5, 5, -2.9, 1.75, 0, 'parede');
-    createBox(2.0, 3.5, 0.2, -2.0, 1.75, 2.4, 'parede');
-    createBox(2.0, 3.5, 0.2, 2.0, 1.75, 2.4, 'parede');
-    createBox(2.0, 0.7, 0.2, 0, 3.15, 2.4, 'parede');
+    // --- TÉRREO ---
+    createBox(6, 3.5, 0.2, 0, 1.75, -2.4, 'parede'); // Fundo
+    createBox(0.2, 3.5, 5, -2.9, 1.75, 0, 'parede'); // Esq
+    createBox(2.0, 3.5, 0.2, -2.0, 1.75, 2.4, 'parede'); // Parede Esq (Recuada)
+    createBox(2.0, 3.5, 0.2, 2.0, 1.75, 2.4, 'parede');  // Parede Dir (Recuada)
+    createBox(2.0, 0.7, 0.2, 0, 3.15, 2.4, 'parede');    // Verga (Mais fina para porta mais alta)
+    createBox(0.2, 3.5, 2, 2.9, 1.75, 1.5, 'parede');
+    createBox(0.2, 3.5, 1, 2.9, 1.75, -2, 'parede');
+    createBox(0.2, 1, 2, 2.9, 3, 0, 'parede'); // Verga Passagem Garagem
 
-    // Segundo andar
+    // --- RAMPA (Esquerda) ---
+    const rampGeo = new THREE.BoxGeometry(2.5, 0.2, 6.0);
+    const ramp = new THREE.Mesh(rampGeo, matMadeira);
+    ramp.position.set(-1.5, 1.75, 0.8);
+    ramp.rotation.x = -0.72;
+    ramp.castShadow = true;
+    ramp.receiveShadow = true;
+    ramp.userData.isGround = true;
+    obstacles.push(ramp);
+    buildingGroup.add(ramp);
+
+    // --- SEGUNDO ANDAR ---
     createBox(3.0, 0.2, 5, 1.5, 3.5, 0, 'concreto');
-    createBox(4, 3, 0.2, -1, 5, 2.4, 'concreto');
-    createBox(4, 3, 0.2, -1, 5, -2.4, 'concreto');
-    createBox(0.2, 3, 5, -2.9, 5, 0, 'concreto');
+    createBox(3.0, 0.2, 1.5, -1.5, 3.5, -1.75, 'concreto');
+    createBox(4, 3, 0.2, -1, 5, 2.4, 'concreto'); // Frente
+    createBox(4, 3, 0.2, -1, 5, -2.4, 'concreto'); // Fundo
+    createBox(0.2, 3, 5, -2.9, 5, 0, 'concreto'); // Esq
+    createBox(0.2, 3, 1, 0.9, 5, 0, 'concreto'); // Pilar Central
+    createBox(0.2, 3, 0.5, 0.9, 5, -2.25, 'concreto'); // Canto Fundo
+    createBox(0.2, 3, 0.5, 0.9, 5, 2.25, 'concreto'); // Canto Frente
+    createBox(0.2, 1, 1.5, 0.9, 6, 1.25, 'concreto'); // Verga Janela
+    createBox(0.2, 1, 1.5, 0.9, 4, 1.25, 'concreto'); // Peitoril Janela
+    createBox(0.2, 1, 1.5, 0.9, 6, -1.25, 'concreto'); // Verga Porta
 
-    // Telhado
+    // --- TELHADO ---
     createBox(4.4, 0.2, 5.4, -1, 6.5, 0, 'concreto');
-    createBox(4.4, 0.4, 0.2, -1, 6.8, 2.6, 'concreto');
+    createBox(4.4, 0.4, 0.2, -1, 6.8, 2.6, 'concreto'); // Mureta
+    createBox(0.2, 0.4, 5.4, -3.1, 6.8, 0, 'concreto'); // Mureta
 
-    // Merge visual
+    // --- SACADA EXTERNA ---
+    const sacadaChao = createBox(2, 0.2, 5, 2, 3.5, 0, 'concreto');
+    sacadaChao.userData.isGround = true;
+    createBox(2, 1, 0.2, 2, 4, 2.4, 'concreto');
+    createBox(0.2, 1, 5, 2.9, 4, 0, 'concreto');
+
+    // --- GARAGEM ---
+    const garRoof = createBox(3.2, 0.1, 4.2, 4.5, 3.2, -0.5, 'metal');
+    garRoof.rotation.z = -0.15;
+    garRoof.userData.isGround = true;
+    createBox(0.1, 3, 4, 6, 1.5, -0.5, 'metal'); // Parede Ext
+    createBox(3, 3, 0.1, 4.5, 1.5, -2.5, 'metal'); // Fundo
+    createBox(1, 3, 0.1, 5.5, 1.5, 1.5, 'metal'); // Frente Parcial
+    createBox(2, 0.5, 0.1, 4.5, 2.8, 1.5, 'metal'); // Topo Frente
+    createBox(3, 0.1, 4, 4.5, 0.1, -0.5, 'concreto'); // Piso
+
+    // --- PORTA DA GARAGEM (FUNCIONAL - NÃO FUNDIR) ---
+    const portao = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.8, 3.0), new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8, roughness: 0.2 }));
+    portao.position.set(5.5, 1.4, 1.5);
+    portao.castShadow = true; portao.receiveShadow = true;
+    portao.userData.isDoor = true;
+    portao.userData.isSolid = true;
+    portao.userData.isOpen = false;
+    portao.userData.origY = 1.4;
+    obstacles.push(portao);
+    buildingGroup.add(portao);
+
+    // --- DETALHES ---
+    for (let i = -1; i <= 1; i++) {
+        createBox(0.7, 0.3, 0.5, -1 + (i * 0.6), 6.8, 2.2, 'saco');
+    }
+    createBox(1, 1, 1, 2, 0.5, -1.5, 'madeira'); // Caixote
+
+    // --- MERGE VISUAL (MÁGICA) ---
     if (geometries.parede.length > 0) {
         const merged = BufferGeometryUtils.mergeGeometries(geometries.parede);
-        const mesh = new THREE.Mesh(merged, matParede);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        buildingGroup.add(mesh);
+        const mesh = new THREE.Mesh(merged, matParede); mesh.castShadow = true; mesh.receiveShadow = true; buildingGroup.add(mesh);
     }
     if (geometries.concreto.length > 0) {
         const merged = BufferGeometryUtils.mergeGeometries(geometries.concreto);
-        const mesh = new THREE.Mesh(merged, matConcreto);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        buildingGroup.add(mesh);
+        const mesh = new THREE.Mesh(merged, matConcreto); mesh.castShadow = true; mesh.receiveShadow = true; buildingGroup.add(mesh);
+    }
+    if (geometries.metal.length > 0) {
+        const merged = BufferGeometryUtils.mergeGeometries(geometries.metal);
+        const mesh = new THREE.Mesh(merged, matMetal); mesh.castShadow = true; mesh.receiveShadow = true; buildingGroup.add(mesh);
+    }
+    if (geometries.madeira.length > 0) {
+        const merged = BufferGeometryUtils.mergeGeometries(geometries.madeira);
+        const mesh = new THREE.Mesh(merged, matMadeira); mesh.castShadow = true; mesh.receiveShadow = true; buildingGroup.add(mesh);
+    }
+    if (geometries.saco.length > 0) {
+        const merged = BufferGeometryUtils.mergeGeometries(geometries.saco);
+        const mesh = new THREE.Mesh(merged, matSaco); mesh.castShadow = true; mesh.receiveShadow = true; buildingGroup.add(mesh);
     }
 
-    // Medkit
+    // Adiciona Medkit dentro da nova casa (para manter jogabilidade)
+    // ESCALA REDUZIDA PELA METADE
     const mk = new THREE.Group();
-    const mkBox = new THREE.Mesh(
-        new THREE.BoxGeometry(1.8, 1.2, 1.2),
-        new THREE.MeshStandardMaterial({ color: 0xffffff })
-    );
-    const crossH = new THREE.Mesh(
-        new THREE.BoxGeometry(1.4, 0.4, 1.4),
-        new THREE.MeshStandardMaterial({ color: 0xff0000 })
-    );
-    const crossV = new THREE.Mesh(
-        new THREE.BoxGeometry(0.4, 1.4, 1.4),
-        new THREE.MeshStandardMaterial({ color: 0xff0000 })
-    );
+    const mkBox = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, 1.2), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+    const crossH = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.4, 1.4), new THREE.MeshStandardMaterial({ color: 0xff0000 }));
+    const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.4, 1.4), new THREE.MeshStandardMaterial({ color: 0xff0000 }));
     mk.add(mkBox, crossH, crossV);
-    mk.position.set(0, 1.2, 0);
-    mk.scale.set(0.35, 0.35, 0.35);
+    mk.position.set(0, 1.2, 0); // Centro da casa
+    mk.scale.set(0.35, 0.35, 0.35); // REDUZIDO
     mk.userData.isMedkit = true;
     buildingGroup.add(mk);
     medkits.push(mk);
 
+    // Posicionamento no Mundo
     buildingGroup.position.set(x, 0, z);
     buildingGroup.userData.isHouse = true;
+
+    // AUMENTO DO TAMANHO DAS CASAS (Scale 4.5)
     buildingGroup.scale.set(4.5, 4.5, 4.5);
+
     scene.add(buildingGroup);
 
+    // Metadata para Bots
     houseData.push({
         position: new THREE.Vector3(x, 2, z),
-        doorPos: new THREE.Vector3(x, 0, z + 7),
+        doorPos: new THREE.Vector3(x, 0, z + 7), // Entrada aproximada
         occupiedBy: null,
-        id: houseId
+        id: houseId,
+        bounds: new THREE.Box3().setFromObject(buildingGroup)
     });
 }
 
@@ -726,86 +767,108 @@ function updateMinimap() {
 }
 
 // Main game loop
+// Main game loop (PORTED FROM BACKUP for Exact Physics)
 function animate() {
-    if (!isPlaying) {
-        requestAnimationFrame(animate);
-        return;
-    }
+    if (!isPlaying) { requestAnimationFrame(animate); return; }
 
-    const deltaTime = Math.min(clock.getDelta(), 0.1);
+    const delta = Math.min(clock.getDelta(), 0.1);
+    const fpsScale = delta * 60; // Helper for physics scaling
+    const time = clock.getElapsedTime();
 
     // 🌐 NETWORK UPDATE
-    if (window.gameNetwork) window.gameNetwork.update(deltaTime);
+    if (window.gameNetwork) window.gameNetwork.update(delta);
 
-    // Player movement
-    if (!isPaused && moveVec.length() > 0) {
-        const speed = isRunning ? 0.4 : 0.2;
-        const moveDir = new THREE.Vector3(moveVec.x, 0, moveVec.y);
-        moveDir.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraYaw);
-        playerGroup.position.add(moveDir.multiplyScalar(speed));
+    // --- CORREÇÃO DE ROTAÇÃO: CORPO DE COSTAS PARA A CÂMERA (Math.PI adicionado) ---
+    if (charModel) charModel.rotation.y = THREE.MathUtils.lerp(charModel.rotation.y, cameraYaw + Math.PI, 0.3 * fpsScale);
 
-        // Collision check
-        checkPlayerCollision();
+    let inputX = moveVec.x; let inputY = moveVec.y;
+    const speed = (isRunning ? 1.19 : 0.8) * (isADS ? 0.4 : 1) * fpsScale;
+    const isMoving = moveVec.length() > 0.1;
 
-        // Animate character
-        CharacterFactory.animateLimbs(charModel, deltaTime, true);
-    } else if (charModel) {
-        CharacterFactory.animateLimbs(charModel, deltaTime, false);
+    // --- ANIMAÇÃO DO JOGADOR LOCAL ---
+    const playerAnimSpeed = isRunning ? 15 : 10;
+    const playerCycle = time * playerAnimSpeed;
+    CharacterFactory.animateLimbs(charModel, delta, isMoving, Math.sin(playerCycle), cameraPitch);
+
+    if (isMoving) {
+        const moveAngle = Math.atan2(-inputX, inputY);
+        const dir = tempVec.set(0, 0, -1).applyAxisAngle(tempVec2.set(0, 1, 0), cameraYaw + moveAngle);
+        const nextX = playerGroup.position.x + dir.x * speed;
+        const nextZ = playerGroup.position.z + dir.z * speed;
+
+        const distFromCenter = Math.hypot(nextX, nextZ);
+        if (distFromCenter < mapRadiusLimit) {
+            let finalX = nextX; let finalZ = nextZ;
+            let hitX = false, hitZ = false;
+            const pBoxSize = tempVec2.set(0.6, 4.5, 0.6);
+
+            // X Check
+            const boxX = new THREE.Box3().setFromCenterAndSize(tempVec.set(finalX, playerGroup.position.y + 2.5, playerGroup.position.z), pBoxSize);
+            for (let i = 0; i < obstacleBoxes.length; i++) {
+                const box = obstacleBoxes[i];
+                if (playerGroup.position.y >= box.max.y - 0.2) continue;
+                if (box.userData.isDoor && box.userData.isOpen) continue;
+                if (boxX.intersectsBox(box)) { hitX = true; break; }
+            }
+            // Z Check
+            const boxZ = new THREE.Box3().setFromCenterAndSize(tempVec.set(playerGroup.position.x, playerGroup.position.y + 2.5, finalZ), pBoxSize);
+            for (let i = 0; i < obstacleBoxes.length; i++) {
+                const box = obstacleBoxes[i];
+                if (playerGroup.position.y >= box.max.y - 0.2) continue;
+                if (box.userData.isDoor && box.userData.isOpen) continue;
+                if (boxZ.intersectsBox(box)) { hitZ = true; break; }
+            }
+            if (!hitX) playerGroup.position.x = finalX;
+            if (!hitZ) playerGroup.position.z = finalZ;
+        }
     }
 
-    // Gravity
-    vY -= 0.04;
-    playerGroup.position.y += vY;
+    // Gravity (Simple Physics)
+    playerGroup.position.y += vY * fpsScale;
+    floorRay.ray.origin.copy(playerGroup.position).add(tempVec.set(0, 1.5, 0)); floorRay.ray.direction.set(0, -1, 0);
+    const floorHits = floorRay.intersectObjects(groundObstacles);
+    let floorY = (floorHits.length > 0) ? floorHits[0].point.y : 0;
 
-    // Ground check
-    if (playerGroup.position.y < 0.2) {
-        playerGroup.position.y = 0.2;
-        vY = 0;
-        jumps = 0;
+    if (playerGroup.position.y > floorY + 0.15) vY -= 0.025 * fpsScale;
+    else { playerGroup.position.y = floorY; vY = 0; jumps = 0; }
+
+    // Hit/Zone Logic...
+    if (zoneActive && zoneRadius > 5) {
+        zoneRadius -= 0.05 * fpsScale; zoneMesh.scale.set(zoneRadius, 1, zoneRadius);
+        if (Math.hypot(playerGroup.position.x, playerGroup.position.z) > zoneRadius) { health -= 0.1 * fpsScale; }
     }
 
-    // Camera - ORIGINAL RESTAURADA
+    document.getElementById('hp-bar').style.width = Math.max(0, health) + '%';
+    document.getElementById('armor-bar').style.width = armor + '%';
+
+    // Medkits interaction
+    medkits.forEach((mk) => {
+        if (mk.visible && playerGroup.position.distanceTo(mk.getWorldPosition(tempVec)) < 6) {
+            if (health < 100) { health = Math.min(100, health + 50); mk.visible = false; playSfx('hit'); }
+        }
+    });
+
+    // Camera - PORTED LOGIC
     if (isFPS) {
         charModel.visible = false;
         camera.position.copy(playerGroup.position).add(tempVec.set(0, 10.6, 0));
         camera.rotation.set(cameraPitch, cameraYaw, 0, 'YXZ');
     } else {
-        // Third Person - ORIGINAL REFINED
         charModel.visible = true;
-
-        const dist = isADS ? 15.0 : 25.0; // Closer for ADS
-
-        // Orbita baseada no pitch
-        const orbitY = Math.sin(-cameraPitch) * dist;
-        const orbitXZ = Math.cos(-cameraPitch) * dist;
-
-        // Direita da câmera
+        const dist = isADS ? 15.0 : 25.0;
         const rightDir = tempVec.set(1, 0, 0).applyAxisAngle(tempVec2.set(0, 1, 0), cameraYaw);
 
-        // Posição final: Player + Orbita + Offset Lateral (8.0 -> Direita do Ombro)
-        // Altura base 10.6 + orbitY
-        const posOffset = tempVec2.set(
-            Math.sin(cameraYaw) * orbitXZ,
-            Math.max(1.0, 10.6 + orbitY),
-            Math.cos(cameraYaw) * orbitXZ
-        ).add(rightDir.clone().multiplyScalar(8.0)); // Offset Direita Aumentado
+        // Posição: Player + Orbita (Pitch) + Offset Lateral
+        const cx = Math.sin(cameraYaw) * Math.cos(-cameraPitch) * dist;
+        const cz = Math.cos(cameraYaw) * Math.cos(-cameraPitch) * dist;
+        const cy = Math.sin(-cameraPitch) * dist;
 
-        camera.position.copy(playerGroup.position).add(posOffset);
-
-        // Foco (LookAt) na mesma direção (Offset Lateral 8.0) para manter alinhamento
-        // Altura do alvo um pouco acima da cabeça
+        camera.position.copy(playerGroup.position).add(tempVec.set(cx, cy + 10.6, cz)).add(rightDir.clone().multiplyScalar(8.0));
         camera.lookAt(
             playerGroup.position.x + rightDir.x * 8.0,
             playerGroup.position.y + 3.5,
             playerGroup.position.z + rightDir.z * 8.0
         );
-    }
-
-
-
-    // Character rotation
-    if (charModel) {
-        charModel.rotation.y = cameraYaw + Math.PI;
     }
 
     // Shooting
@@ -814,26 +877,16 @@ function animate() {
         shootBullet();
     }
 
-    // Update bullets
-    updateBullets(deltaTime);
-
-    // Update bots
-    updateBots(deltaTime);
-
-    // 🚀 Update particles
-    if (particleSystem) {
-        particleSystem.update(deltaTime);
-    }
+    updateBullets(delta);
+    updateBots(delta); // AI
 
     // 💣 Update grenades
-    updateGrenades(deltaTime);
+    updateGrenades(delta);
 
     // Update minimap
     updateMinimap();
 
-    // Update HUD
-    document.getElementById('hp-bar').style.width = health + '%';
-    document.getElementById('armor-bar').style.width = armor + '%';
+    if (particleSystem) particleSystem.update(delta);
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);

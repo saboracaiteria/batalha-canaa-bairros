@@ -195,26 +195,61 @@ export class CharacterFactory {
     }
 
     /**
-     * Animate character limbs based on movement
+     * Animate character limbs based on movement (PORTED FROM BACKUP)
      */
-    static animateLimbs(character, deltaTime, isMoving) {
+    static animateLimbs(character, deltaTime, isMoving, angle = 0, pitch = 0) {
         if (!character || !character.userData.limbs) return;
 
         const limbs = character.userData.limbs;
-        const time = Date.now() * 0.005;
+        const time = Date.now() / 1000;
 
-        if (isMoving) {
-            // Walking animation
-            limbs.leftLeg.rotation.x = Math.sin(time * 2) * 0.5;
-            limbs.rightLeg.rotation.x = Math.sin(time * 2 + Math.PI) * 0.5;
-            limbs.leftArm.rotation.x = Math.sin(time * 2 + Math.PI) * 0.3;
-            limbs.rightArm.rotation.x = Math.sin(time * 2) * 0.3;
+        // --- CORREÇÃO DE MIRA: CABEÇA E BRAÇO OLHANDO PARA O HORIZONTE/MIRA ---
+        character.userData.head.rotation.x = pitch;
+
+        // DETECÇÃO DE PULO (NO AR)
+        const isInAir = character.position.y > 0.3; // Raised slightly to avoid jitter
+
+        if (isInAir) {
+            // POSE DE PULO
+            character.userData.bodyContainer.position.y = 0.2;
+            limbs.leftLeg.rotation.x = -0.5;
+            limbs.rightLeg.rotation.x = -0.8;
+            limbs.leftKnee.rotation.x = 1.5;
+            limbs.rightKnee.rotation.x = 1.2;
+        } else if (isMoving) {
+            // Walking Animation
+            const cycle = time * 10;
+            character.userData.bodyContainer.position.y = Math.abs(Math.cos(cycle)) * 0.1;
+
+            // Legs
+            limbs.leftLeg.rotation.x = Math.sin(cycle) * 0.8;
+            limbs.rightLeg.rotation.x = Math.sin(cycle + Math.PI) * 0.8;
+
+            // Knees (Simple bend)
+            limbs.leftKnee.rotation.x = Math.max(0, -Math.sin(cycle) * 1.5);
+            limbs.rightKnee.rotation.x = Math.max(0, -Math.sin(cycle + Math.PI) * 1.5);
+
+            // Arms (Swing opposite to legs)
+            limbs.leftArm.rotation.x = Math.sin(cycle + Math.PI) * 0.5;
+            limbs.rightArm.rotation.x = Math.sin(cycle) * 0.5;
+
         } else {
-            // Idle - smooth return to neutral
-            limbs.leftLeg.rotation.x *= 0.9;
-            limbs.rightLeg.rotation.x *= 0.9;
-            limbs.leftArm.rotation.x *= 0.9;
-            limbs.rightArm.rotation.x *= 0.9;
+            // Idle
+            character.userData.bodyContainer.position.y = 0;
+            limbs.leftLeg.rotation.x = 0;
+            limbs.rightLeg.rotation.x = 0;
+            limbs.leftKnee.rotation.x = 0;
+            limbs.rightKnee.rotation.x = 0;
         }
+
+        // --- UPPER BODY AIMING LOGIC ---
+        // Always aim the weapon
+        character.userData.waist.rotation.y = -0.25;
+        character.userData.chest.rotation.y = -0.55;
+
+        // FIX: ARMA INVERTIDA (AGORA SUBTRAI O PITCH)
+        // This ensures the arm aims up/down with the camera
+        limbs.rightArm.rotation.set(-Math.PI / 2 - pitch, 0, 0);
+        limbs.leftArm.rotation.set(-Math.PI / 2 - pitch, 0.5, 0.5); // Support hand
     }
 }
