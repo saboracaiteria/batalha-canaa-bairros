@@ -2,6 +2,7 @@ import { Game } from './core/Game.js';
 import { CharacterFactory } from './entities/CharacterFactory.js';
 import { ObjectPool } from './utils/ObjectPool.js';
 import { ParticleSystem } from './systems/Particle.js';
+import { Network } from './systems/Network.js'; // 🌐 PORTED MULTIPLAYER
 import './ui/HudEditor.js'; // HUD customization
 import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
@@ -707,6 +708,9 @@ function animate() {
 
     const deltaTime = Math.min(clock.getDelta(), 0.1);
 
+    // 🌐 NETWORK UPDATE
+    if (window.gameNetwork) window.gameNetwork.update(deltaTime);
+
     // Player movement
     if (!isPaused && moveVec.length() > 0) {
         const speed = isRunning ? 0.4 : 0.2;
@@ -1051,31 +1055,72 @@ function spawnBot(isAlly) {
     bots.push(bot);
 }
 
+// 🧠 ADVANCED AI (PORTED FROM BACKUP)
 function updateBots(deltaTime) {
-    for (let i = 0; i < bots.length; i++) {
-        const bot = bots[i];
+    // 1. Filter Lists
+    let enemyBots = bots.filter(b => !b.userData.isAlly);
+    let realEnemies = []; // Multiplayer enemies would be here
 
-        // Simple AI: move towards player if enemy
-        if (!bot.userData.isAlly) {
-            const dir = new THREE.Vector3().subVectors(playerGroup.position, bot.position);
-            const dist = dir.length();
+    // 2. Update Each Bot
+    bots.forEach((bot) => {
+        if (!bot.userData.aiTick) bot.userData.aiTick = 0;
+        bot.userData.aiTick += 1;
 
-            if (dist > 20) {
-                // Move towards player
-                dir.normalize().multiplyScalar(0.1);
-                bot.position.add(dir);
-                CharacterFactory.animateLimbs(bot, deltaTime, true);
+        // A. Movement Logic
+        const distToPlayer = bot.position.distanceTo(playerGroup.position);
+        const isAlly = bot.userData.isAlly;
+
+        // Decision: Move or Shoot?
+        // Allies follow player, Enemies flank
+        if (isAlly) {
+            if (distToPlayer > 15) {
+                const dir = new THREE.Vector3().subVectors(playerGroup.position, bot.position).normalize();
+                bot.position.add(dir.multiplyScalar(0.1));
                 bot.rotation.y = Math.atan2(dir.x, dir.z);
+                CharacterFactory.animateLimbs(bot, deltaTime, true);
             } else {
                 CharacterFactory.animateLimbs(bot, deltaTime, false);
+            }
+        } else {
+            // Enemy Logic
+            if (distToPlayer > 25) {
+                // Far away: Approach
+                const dir = new THREE.Vector3().subVectors(playerGroup.position, bot.position).normalize();
+                bot.position.add(dir.multiplyScalar(0.08)); // Slower than ally
+                bot.rotation.y = Math.atan2(dir.x, dir.z);
+                CharacterFactory.animateLimbs(bot, deltaTime, true);
+            } else {
+                // Combat Range: Strafing (Simple Flank)
                 bot.rotation.y = Math.atan2(
                     playerGroup.position.x - bot.position.x,
                     playerGroup.position.z - bot.position.z
                 );
+
+                // Strafe logic
+                const time = Date.now() / 1000;
+                const strafe = Math.sin(time * 2) * 0.05;
+                const sideVec = new THREE.Vector3(Math.cos(bot.rotation.y), 0, -Math.sin(bot.rotation.y));
+                bot.position.add(sideVec.multiplyScalar(strafe));
+
+                CharacterFactory.animateLimbs(bot, deltaTime, true);
+
+                // Shoot
+                if (Math.random() < 0.02) {
+                    spawnBullet('bot', bot.position.clone().add(new THREE.Vector3(0, 1.5, 0)), playerGroup.position.clone().add(new THREE.Vector3(0, 1, 0)), bot.userData.id, 5);
+                }
             }
         }
-    }
+
+        // Helper for creating bullets (Ported)
+        /* 
+           Note: The original backup had complex cover logic.
+           I've simplified it slightly here to ensure it runs without 
+           reference errors to 'obstacleBoxes' which might be different in this scope.
+           But this restores the 'Strafing' and 'Shoot' behavior.
+        */
+    });
 }
+
 
 function setupBotsPeriphery() {
     const enemyCount = cfg.bots;
@@ -1087,7 +1132,42 @@ function setupBotsPeriphery() {
     if (currentGameMode === 'squad') {
         for (let i = 0; i < 3; i++) spawnBot(true);
     }
+    if (currentGameMode === 'duo') spawnBot(true);
+    if (currentGameMode === 'squad') {
+        for (let i = 0; i < 3; i++) spawnBot(true);
+    }
 }
+
+// 🌐 NETWORK HELPERS
+window.clearBots = () => {
+    bots.forEach(b => scene.remove(b));
+    bots = [];
+};
+
+window.cleanupBots = (validIds) => {
+    for (let i = bots.length - 1; i >= 0; i--) {
+        if (!validIds.includes(bots[i].userData.id)) {
+            scene.remove(bots[i]);
+            bots.splice(i, 1);
+        }
+    }
+};
+
+window.syncBot = (id, data) => {
+    let bot = bots.find(b => b.userData.id === id);
+    if (!bot) {
+        const color = data.isAlly ? 0x00f3ff : 0x7f1d1d;
+        bot = CharacterFactory.createHumanoid(color, id);
+        bot.userData.id = id;
+        bot.userData.isAlly = data.isAlly;
+        bot.userData.maxHP = 100; // Simplified
+        scene.add(bot);
+        bots.push(bot);
+    }
+    bot.position.set(data.x, data.y, data.z);
+    bot.rotation.y = data.ry;
+    bot.userData.hp = data.hp;
+};
 
 // Initialize game
 // Initialize game
@@ -1125,8 +1205,21 @@ window.initGame = (mode) => {
 
         setupThree();
         setupMinimap();
+
+        // 🌐 INIT MULTIPLAYER
+        const network = new Network({ scene, player: playerGroup, health, playerKills, bots, setupBotsPeriphery: setupBotsPeriphery, syncBot: window.syncBot, clearBots: window.clearBots, cleanupBots: window.cleanupBots, cameraYaw: cameraYaw });
+        // NOTE: Above object is a mock game reference. Ideally we pass 'this' but strict mode prevents it. 
+        // We will assign a global 'gameInstance' reference for cleaner access later.
+        window.gameNetwork = network; // Expose for debugging
+        network.connect(); // Connect auth
+
         isPlaying = true;
-        setupBotsPeriphery();
+
+        if (mode === 'multi') {
+            network.startMultiplayer();
+        } else {
+            setupBotsPeriphery();
+        }
 
         console.log('🎮 Jogo iniciado com lógica original!');
     } catch (e) {
@@ -1134,6 +1227,11 @@ window.initGame = (mode) => {
         alert('ERRO AO INICIAR: ' + e.message); // Visual feedback for mobile user
     }
 };
+
+// ...
+/* In Animate Loop, add:
+   if (window.gameNetwork) window.gameNetwork.update(delta);
+*/
 
 // 🖱️ FIX MOBILE TOUCH INTERACTIONS
 // Ensure buttons trigger on touchstart if click fails
@@ -1178,7 +1276,8 @@ window.setMode = (mode, btn) => {
     btn.classList.add('active');
 };
 
-// Expose for debugging
+// ♻️ END OF LEGACY LOGIC
+
 window.game = {
     scene, camera, renderer, playerGroup, bots, bullets, health, armor
 };

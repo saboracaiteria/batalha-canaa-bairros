@@ -18,6 +18,9 @@
             return false;
         };
     </script>
+    <!-- IMPORT MAP (Fix for Unbundled/Render Environments) -->
+
+
     <!-- ES Module Import with Error Handler -->
     <style>
         :root {
@@ -333,8 +336,17 @@
             background: radial-gradient(circle, rgba(255, 68, 68, 0.3) 0%, rgba(0, 0, 0, 0.2) 70%);
         }
     </style>
-  <script type="module" crossorigin src="./assets/index-BHkgNLbg.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+  <script type="module" crossorigin src="./assets/index-DZksgsLz.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/three-eWd1tTWp.js">
+  <link rel="modulepreload" crossorigin href="./assets/firebase-BbZ7kcRE.js">
 </head>
 
 <body>
@@ -389,7 +401,47 @@
             </div>
 
             <div id="tab-multi" class="full grid hidden" style="display: contents;">
-                <p style="color: var(--ui-cyan); font-size: 0.75rem;">MULTIPLAYER EM CONSTRUÇÃO</p>
+                <div class="field">
+                    <label>// OPERAÇÃO EM REDE</label>
+                    <div id="status-multi-msg"
+                        style="font-size: 0.6rem; color: var(--ui-cyan); text-align: center; font-weight: bold; margin: 5px 0;">
+                        SINCRONIZANDO SERVIDOR...</div>
+
+                    <div class="room-list" id="room-browser">
+                        <div class="room-item"
+                            style="border-left-color: var(--ui-primary); padding: 15px; flex-direction: column; align-items: flex-start;">
+                            <div style="width: 100%; display: flex; justify-content: space-between;">
+                                <span class="room-name" style="font-size: 0.9rem;">SETOR: CANAÃ</span>
+                                <span class="room-players" id="display-canaa-players"
+                                    style="color: var(--ui-primary); font-weight: bold;">AGUARDE...</span>
+                            </div>
+                            <div id="lobby-agents-list" style="width: 100%;">SINCRONIZANDO AGENTES...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="field">
+                        <label>// Nº BOTS NA SALA</label>
+                        <input type="number" id="bot-count-multi" value="10" min="0" max="30">
+                    </div>
+                    <div class="field">
+                        <label>// SUA EQUIPE</label>
+                        <select id="team-id">
+                            <option value="1">AZUL (ALIADOS)</option>
+                            <option value="2">VERMELHO (INIMIGOS)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>// IDENTIFICADOR DE REDE</label>
+                    <input type="text" id="room-id" value="CANAÃ" readonly
+                        style="color: var(--ui-primary); background: #050505; border-left-color: var(--ui-cyan);">
+                </div>
+
+                <button id="btn-init-multi" class="btn-main" onclick="initGame('multi')" disabled>[ ENTRAR NA OPERAÇÃO
+                    ]</button>
             </div>
 
             <div id="tab-opts" class="full grid hidden" style="display: contents;">
