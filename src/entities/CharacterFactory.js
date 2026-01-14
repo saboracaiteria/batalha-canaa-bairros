@@ -83,18 +83,27 @@ export class CharacterFactory {
                 elbow.add(gun);
                 limbs.weapon = gun; limbs.rightElbow = elbow; limbs.rightArm = root;
 
-                // Try to load weapon model (Async replacement)
+                /* DISABLED WEAPON LOADING - STABILITY FOCUS
+            // Try to load weapon model
+            if (isHuman) {
                 ModelLoader.load('weapons', 'ar').then(weaponModel => {
                     if (weaponModel) {
-                        gun.clear();
-                        gun.add(weaponModel);
+                        const rArm = group.getObjectByName('RightArm');
+                        if (rArm) {
+                            // Find hand position (approximate)
+                            weaponModel.position.set(0, -0.2, 0.2);
+                            weaponModel.rotation.set(0, Math.PI, 0);
+                            weaponModel.scale.set(1.5, 1.5, 1.5);
 
-                        // Adjust rotation if needed for imported models
-                        // Standard GLB often face +Z, we might need rotation
-                        weaponModel.rotation.y = Math.PI;
-                        console.log('🔫 Loaded weapon model');
+                            // Remove procedural gun if exists (would be child of arm)
+                            // But usually procedural gun is part of the mesh generation.
+                            // For now just add on top.
+                            rArm.add(weaponModel);
+                        }
                     }
                 });
+            }
+            */
             } else {
                 limbs.leftElbow = elbow; limbs.leftArm = root;
             }

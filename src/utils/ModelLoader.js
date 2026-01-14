@@ -24,7 +24,7 @@ export class ModelLoader {
         const extensions = ['glb', 'gltf'];
 
         for (const ext of extensions) {
-            const path = `/assets/models/${category}/${name}.${ext}`;
+            const path = `./assets/models/${category}/${name}.${ext}`;
             const exists = await this.checkFileExists(path);
 
             if (exists) {
