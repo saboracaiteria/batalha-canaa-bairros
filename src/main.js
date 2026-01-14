@@ -429,8 +429,9 @@ function setupGameInput() {
                 if (e.cancelable) e.preventDefault();
             }
             // Fallback: Left side of screen (for "invisible joystick" feel)
-            else if (t.clientX < window.innerWidth / 2.5 && !t.target.classList.contains('hud-el')) {
+            else if (t.clientX < window.innerWidth / 2 && !t.target.classList.contains('hud-el')) {
                 moveTouchId = t.identifier;
+                if (e.cancelable) e.preventDefault();
             }
             else if (t.target.closest('#btn-fire-ads')) {
                 fireTouchId = t.identifier;

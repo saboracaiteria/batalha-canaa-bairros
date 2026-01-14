@@ -68,6 +68,8 @@ export function openHudEditor() {
     hudEls.forEach(el => {
         el.style.border = '3px dashed #fcee0a';
         el.style.pointerEvents = 'auto'; // Force interactable
+        el.style.zIndex = '10001'; // 🚀 CRITICAL: Bring above overlay
+        el.style.position = 'absolute'; // Ensure absolute for dragging
         makeDraggable(el);
     });
 
@@ -166,6 +168,7 @@ function closeHudEditor() {
     hudEls.forEach(el => {
         el.style.border = '';
         el.style.cursor = '';
+        el.style.zIndex = ''; // Reset z-index
     });
 
     // Restore screens if we were on start screen
