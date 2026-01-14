@@ -1314,6 +1314,8 @@ window.setMode = (mode, btn) => {
 window.game = {
     scene, camera, renderer, playerGroup, bots, bullets, health, armor
 };
+// Expose for robustness
+window.spawnBullet = spawnBullet;
 
-alert('SISTEMA - SCRIPT CARREGADO E RODANDO!');
-console.log('✅ Sistema de jogo completo carregado!');
+alert('SISTEMA - SCRIPT CARREGADO E RODANDO! (v2.1)');
+console.log('✅ Sistema de jogo completo (v2.1) carregado!');
