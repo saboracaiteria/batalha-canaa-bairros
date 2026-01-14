@@ -769,10 +769,10 @@ function animate() {
         camera.position.copy(playerGroup.position).add(tempVec.set(0, 10.6, 0));
         camera.rotation.set(cameraPitch, cameraYaw, 0, 'YXZ');
     } else {
-        // Third Person - ORIGINAL
+        // Third Person - ORIGINAL REFINED
         charModel.visible = true;
 
-        const dist = isADS ? 20.0 : 32.0;
+        const dist = isADS ? 15.0 : 25.0; // Closer for ADS
 
         // Orbita baseada no pitch
         const orbitY = Math.sin(-cameraPitch) * dist;
@@ -781,21 +781,22 @@ function animate() {
         // Direita da câmera
         const rightDir = tempVec.set(1, 0, 0).applyAxisAngle(tempVec2.set(0, 1, 0), cameraYaw);
 
-        // Posição final: Player + Orbita + Offset Lateral (3.0)
-        // Altura base 5.3 + orbitY
+        // Posição final: Player + Orbita + Offset Lateral (8.0 -> Direita do Ombro)
+        // Altura base 10.6 + orbitY
         const posOffset = tempVec2.set(
             Math.sin(cameraYaw) * orbitXZ,
             Math.max(1.0, 10.6 + orbitY),
             Math.cos(cameraYaw) * orbitXZ
-        ).add(rightDir.clone().multiplyScalar(6.0));
+        ).add(rightDir.clone().multiplyScalar(8.0)); // Offset Direita Aumentado
 
         camera.position.copy(playerGroup.position).add(posOffset);
 
-        // Foco (LookAt) na altura da cabeça do Player (3.5)
+        // Foco (LookAt) na mesma direção (Offset Lateral 8.0) para manter alinhamento
+        // Altura do alvo um pouco acima da cabeça
         camera.lookAt(
-            playerGroup.position.x + rightDir.x * 6.0,
+            playerGroup.position.x + rightDir.x * 8.0,
             playerGroup.position.y + 3.5,
-            playerGroup.position.z + rightDir.z * 6.0
+            playerGroup.position.z + rightDir.z * 8.0
         );
     }
 
