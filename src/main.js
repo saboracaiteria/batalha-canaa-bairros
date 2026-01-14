@@ -1183,4 +1183,5 @@ window.game = {
     scene, camera, renderer, playerGroup, bots, bullets, health, armor
 };
 
+alert('SISTEMA - SCRIPT CARREGADO E RODANDO!');
 console.log('✅ Sistema de jogo completo carregado!');
