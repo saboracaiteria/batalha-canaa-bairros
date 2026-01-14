@@ -403,7 +403,7 @@ function setupThree() {
     charModel = CharacterFactory.createHumanoid(0x2E7D32, 'player', 'player');
     playerGroup.add(charModel);
     scene.add(playerGroup);
-    playerGroup.position.set(40, 68, 40); // Spawn outside Lighthouse (0,0)
+    playerGroup.position.set(100, 100, 100); // Safe Spawn High Up
 
     zoneMesh = new THREE.Mesh(
         new THREE.CylinderGeometry(1, 1, 1500, 32, 1, true),
@@ -438,6 +438,14 @@ function setupThree() {
     setupGameInput();
     scene.updateMatrixWorld(true);
     updateCollisionBoxes();
+
+    console.log(`📦 Collision Boxes Generated: ${obstacleBoxes.length}`);
+    setInterval(() => {
+        if (isPlaying && !isPaused) {
+            console.log(`📍 Pos: ${playerGroup.position.x.toFixed(1)}, ${playerGroup.position.y.toFixed(1)}, ${playerGroup.position.z.toFixed(1)} | vY: ${vY.toFixed(2)} | Ground: ${groundObstacles.length}`);
+        }
+    }, 2000);
+
     animate();
 }
 
@@ -463,15 +471,24 @@ function setupGameInput() {
     window.addEventListener('touchstart', e => {
         if (isEditingHud || isPaused) return;
         for (let t of e.changedTouches) {
-            // Priority: Explicit Joystick Touch
-            if (t.target.id === 'joy-zone' || t.target.closest('#joy-zone')) {
+            // Priority: Explicit Joystick Touch OR Left Side of Screen (Dynamic Joystick)
+            const isJoyZone = t.target.id === 'joy-zone' || t.target.closest('#joy-zone');
+            const isLeftSide = t.clientX < window.innerWidth / 2 && !t.target.classList.contains('hud-el');
+
+            if (isJoyZone || isLeftSide) {
                 moveTouchId = t.identifier;
-                // preventDefault is crucial for joystick to not scroll page
-                if (e.cancelable) e.preventDefault();
-            }
-            // Fallback: Left side of screen (for "invisible joystick" feel)
-            else if (t.clientX < window.innerWidth / 2 && !t.target.classList.contains('hud-el')) {
-                moveTouchId = t.identifier;
+
+                // 🕹️ DYNAMIC JOYSTICK: Move the zone to where the finger is!
+                const zone = document.getElementById('joy-zone');
+                if (zone) {
+                    const radius = zone.offsetWidth / 2;
+                    // Position zone centered on touch
+                    zone.style.left = `${t.clientX}px`;
+                    zone.style.top = `${t.clientY}px`;
+                    // Reset knob
+                    document.getElementById('joy-knob').style.transform = `translate(-50%, -50%)`;
+                }
+
                 if (e.cancelable) e.preventDefault();
             }
             else if (t.target.closest('#btn-fire-ads')) {
@@ -503,25 +520,16 @@ function setupGameInput() {
         el.addEventListener('pointerdown', e => {
             if (isEditingHud) return;
             if (el.id === 'btn-jump') {
-                if (!isPaused && jumps < 2) {
-                    vY = 0.8;
-                    jumps++;
-                }
+                if (!isPaused && jumps < 2) { vY = 0.8; jumps++; }
             }
-            if (el.id === 'btn-grenade') {
-                throwGrenade();
-            }
+            if (el.id === 'btn-grenade') throwGrenade();
             if (el.id === 'btn-weapon') {
-                // Cycle weapons: AR -> SMG -> SNIPER -> SHOTGUN
                 const weapons = ['AR', 'SMG', 'SNIPER', 'SHOTGUN'];
                 const currentIndex = weapons.indexOf(currentWeapon);
                 currentWeapon = weapons[(currentIndex + 1) % weapons.length];
                 console.log('🔫 Arma trocada para:', currentWeapon);
             }
-            if (el.id === 'btn-reload') {
-                console.log('🔄 Recarregando...');
-                // Reload logic would go here
-            }
+            if (el.id === 'btn-reload') console.log('🔄 Recarregando...');
         });
     });
 
@@ -532,14 +540,16 @@ function setupGameInput() {
                 const zone = document.getElementById('joy-zone');
                 if (!zone) return;
 
-                const r = zone.getBoundingClientRect();
-                const radius = r.width / 2; // Dynamic radius (approx 70px)
+                // Center is now the ZONE position (which we moved on start)
+                const rect = zone.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const radius = rect.width / 2;
 
-                let dx = t.clientX - (r.left + radius);
-                let dy = t.clientY - (r.top + radius);
+                let dx = t.clientX - centerX;
+                let dy = t.clientY - centerY;
                 const d = Math.hypot(dx, dy);
 
-                // Limit to radius
                 if (d > radius) {
                     dx *= radius / d;
                     dy *= radius / d;
@@ -550,13 +560,19 @@ function setupGameInput() {
             }
             if (t.identifier === fireTouchId) {
                 cameraYaw -= (t.clientX - fireLastX) * cfg.sens * 0.8;
-                cameraPitch = Math.max(-1.5, Math.min(1.5, cameraPitch - (t.clientY - fireLastY) * cfg.sens * 1.2));
+                cameraPitch -= (t.clientY - fireLastY) * cfg.sens * 1.2;
+                // STRICT CLAMP HERE
+                cameraPitch = Math.max(-1.5, Math.min(1.5, cameraPitch));
+
                 fireLastX = t.clientX;
                 fireLastY = t.clientY;
             }
             if (t.identifier === lookTouchId) {
                 cameraYaw -= (t.clientX - lastX) * cfg.sens;
-                cameraPitch = Math.max(-1.5, Math.min(1.5, cameraPitch - (t.clientY - lastY) * cfg.sens));
+                cameraPitch -= (t.clientY - lastY) * cfg.sens;
+                // STRICT CLAMP HERE
+                cameraPitch = Math.max(-1.5, Math.min(1.5, cameraPitch));
+
                 lastX = t.clientX;
                 lastY = t.clientY;
             }
@@ -569,6 +585,10 @@ function setupGameInput() {
                 moveTouchId = null;
                 moveVec.set(0, 0);
                 document.getElementById('joy-knob').style.transform = 'translate(-50%, -50%)';
+
+                // Optional: Reset zone to default position if desired, 
+                // but usually Dynamic Joystick stays or fades. 
+                // Let's leave it for now or user preference.
             }
             if (t.identifier === fireTouchId) {
                 fireTouchId = null;
