@@ -362,7 +362,7 @@ function setupThree() {
     charModel = CharacterFactory.createHumanoid(0x2E7D32, 'player', 'player');
     playerGroup.add(charModel);
     scene.add(playerGroup);
-    playerGroup.position.set(0, 68, 0);
+    playerGroup.position.set(40, 68, 40); // Spawn outside Lighthouse (0,0)
 
     zoneMesh = new THREE.Mesh(
         new THREE.CylinderGeometry(1, 1, 1500, 32, 1, true),
