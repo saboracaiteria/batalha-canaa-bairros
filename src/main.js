@@ -1062,52 +1062,51 @@ function animate() {
         }
     }
 
+    // --- GAME LOOP LOGIC RESTORED ---
+    // 1. Armor Regen
+    if (time - lastDamageTime > 6 && armor < 100) armor = Math.min(100, armor + 0.15 * fpsScale);
+
+    // 2. Zone UI & Spawn Protection
+    if (zoneActive && zoneRadius > 5) {
+        const isSpawnProtected = (Date.now() - matchStartTime < 10000);
+        document.getElementById('timer-display').innerText = isSpawnProtected ? `SPAWN PROTECTED` : `ZONA EM MOVIMENTO`;
+    }
+
+    // 3. Win Condition & Bot Count Update
+    let enemyBots = bots.filter(b => !b.userData.isAlly);
+    let alliedBots = bots.filter(b => b.userData.isAlly);
+
+    // Check if bots were spawned at least once
+    if (isPlaying && bots.length > 0 && !initialBotsSpawned) initialBotsSpawned = true;
+
+    // Update Counts
+    const elEnemies = document.getElementById('count-alive');
+    const elAllies = document.getElementById('count-allies');
+    if (elEnemies) elEnemies.innerText = enemyBots.length;
+    if (elAllies) elAllies.innerText = alliedBots.length;
+
+    // Mission Accomplished Check
+    if (!isMultiplayer && isPlaying && initialBotsSpawned && time > 3 && enemyBots.length === 0 && health > 0 && initialBotCount > 0) {
+        showMsg("MISSÃO CUMPRIDA", "Ameaças eliminadas. Operação bem-sucedida!");
+    }
+
+    // Game Over Check (Implicitly handled by showMsg called when dead, but backup adds a check here?)
+    // Backup doesn't have explicit game over check in animate, it relies on health <= 0 somewhere.
+    // Let's add explicit check if we die
+    if (isPlaying && health <= 0) {
+        showMsg("ELIMINADO", "Você foi abatido em combate.");
+    }
+
+    updateBots(delta); // AI
+
+    // Update minimap
+    updateMinimap();
+
+    if (particleSystem) particleSystem.update(delta);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
 }
-
-// --- GAME LOOP LOGIC RESTORED ---
-// 1. Armor Regen
-if (time - lastDamageTime > 6 && armor < 100) armor = Math.min(100, armor + 0.15 * fpsScale);
-
-// 2. Zone UI & Spawn Protection
-if (zoneActive && zoneRadius > 5) {
-    const isSpawnProtected = (Date.now() - matchStartTime < 10000);
-    document.getElementById('timer-display').innerText = isSpawnProtected ? `SPAWN PROTECTED` : `ZONA EM MOVIMENTO`;
-}
-
-// 3. Win Condition & Bot Count Update
-let enemyBots = bots.filter(b => !b.userData.isAlly);
-let alliedBots = bots.filter(b => b.userData.isAlly);
-
-// Check if bots were spawned at least once
-if (isPlaying && bots.length > 0 && !initialBotsSpawned) initialBotsSpawned = true;
-
-// Update Counts
-const elEnemies = document.getElementById('count-alive');
-const elAllies = document.getElementById('count-allies');
-if (elEnemies) elEnemies.innerText = enemyBots.length;
-if (elAllies) elAllies.innerText = alliedBots.length;
-
-// Mission Accomplished Check
-if (!isMultiplayer && isPlaying && initialBotsSpawned && time > 3 && enemyBots.length === 0 && health > 0 && initialBotCount > 0) {
-    showMsg("MISSÃO CUMPRIDA", "Ameaças eliminadas. Operação bem-sucedida!");
-}
-
-// Game Over Check (Implicitly handled by showMsg called when dead, but backup adds a check here?)
-// Backup doesn't have explicit game over check in animate, it relies on health <= 0 somewhere.
-// Let's add explicit check if we die
-if (isPlaying && health <= 0) {
-    showMsg("ELIMINADO", "Você foi abatido em combate.");
-}
-
-updateBots(delta); // AI
-
-// Update minimap
-updateMinimap();
-
-if (particleSystem) particleSystem.update(delta);
-
-renderer.render(scene, camera);
-requestAnimationFrame(animate);
 }
 
 // Toggle pause menu
@@ -1631,7 +1630,15 @@ window.initGame = (mode) => {
         loadHudLayout(); // Load saved positions
 
         // 🌐 INIT MULTIPLAYER
-        const network = new Network({ scene, player: playerGroup, health, playerKills, bots, setupBotsPeriphery: setupBotsPeriphery, syncBot: window.syncBot, clearBots: window.clearBots, cleanupBots: window.cleanupBots, cameraYaw: cameraYaw });
+        const network = new Network({
+            scene, player: playerGroup, health, playerKills, bots,
+            setupBotsPeriphery: setupBotsPeriphery,
+            syncBot: window.syncBot,
+            clearBots: window.clearBots,
+            cleanupBots: window.cleanupBots,
+            spawnRemoteGrenade: window.spawnRemoteGrenade, // Added
+            cameraYaw: cameraYaw
+        });
         // NOTE: Above object is a mock game reference. Ideally we pass 'this' but strict mode prevents it. 
         // We will assign a global 'gameInstance' reference for cleaner access later.
         window.gameNetwork = network; // Expose for debugging
@@ -1726,9 +1733,15 @@ function throwGrenade() {
     scene.add(g);
     grenades.push(g);
 
-    // Networking (Placeholder for now, logic exists in backup)
+    // Networking
     if (window.gameNetwork && window.gameNetwork.throwGrenade) {
-        window.gameNetwork.throwGrenade(g.userData);
+        const vel = g.userData.vel;
+        window.gameNetwork.throwGrenade({
+            type: grenadeType,
+            x: g.position.x, y: g.position.y, z: g.position.z,
+            vx: vel.x, vy: vel.y, vz: vel.z,
+            owner: window.gameNetwork.currentUser ? window.gameNetwork.currentUser.uid : 'player'
+        });
     }
 }
 // Expose globally for buttons
@@ -1793,5 +1806,13 @@ window.spawnBotManual = (isAlly) => {
     // Or call spawnSingleBot if we expose it?
     // spawnBot in main.js handles spawn logic but doesn't take 'manual' arg.
     // It's fine, HUD buttons call generic spawnBot usually.
+};
+
+window.spawnRemoteGrenade = (d) => {
+    const g = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), new THREE.MeshStandardMaterial({ color: d.type === 'explosive' ? 0x222222 : 0xeeeeee }));
+    g.position.set(d.x, d.y, d.z);
+    g.userData = { vel: new THREE.Vector3(d.vx, d.vy, d.vz), life: 120, type: d.type, hasStopped: false, owner: 'other', dbId: d.dbId };
+    scene.add(g);
+    grenades.push(g);
 };
 console.log('✅ Sistema de jogo completo (v2.2) carregado!');

@@ -111,6 +111,7 @@ export class Network {
         this.listenToPlayers();
         this.listenToBots();
         this.listenToGrenades();
+        this.listenToRegistry();
     }
 
     listenToPlayers() {
@@ -226,8 +227,29 @@ export class Network {
         onChildAdded(this.refs.nades, (snapshot) => {
             const d = snapshot.val();
             if (d.owner === this.currentUser.uid) return; // Ignore own
-            this.game.spawnRemoteGrenade(d);
+            if (this.game.spawnRemoteGrenade) this.game.spawnRemoteGrenade(d);
         });
+    }
+
+    listenToRegistry() {
+        onValue(this.refs.registry, (snap) => {
+            const rData = snap.val();
+            if (rData && rData.missionStatus === 'complete') {
+                if (window.showMsg) window.showMsg("MISSÃO CUMPRIDA", "Líder confirmou eliminação das ameaças.");
+            }
+        });
+    }
+
+    throwGrenade(data) {
+        if (!this.currentUser) return;
+        const newNadeRef = push(this.refs.nades);
+        set(newNadeRef, {
+            type: data.type,
+            x: data.x, y: data.y, z: data.z,
+            vx: data.vx, vy: data.vy, vz: data.vz,
+            owner: this.currentUser.uid,
+            time: serverTimestamp()
+        }).catch(() => { });
     }
 
     update(deltaTime) {
@@ -257,11 +279,18 @@ export class Network {
                         z: b.position.z,
                         ry: b.rotation.y,
                         hp: b.userData.hp,
+                        maxHP: b.userData.maxHP || 100,
                         isAlly: b.userData.isAlly,
                         name: b.userData.name
                     };
                 });
                 set(this.refs.bots, botData).catch(() => { });
+
+                // Check Win Condition (Leader Only)
+                const enemyCount = this.game.bots.filter(b => !b.userData.isAlly).length;
+                if (window.initialBotsSpawned && enemyCount === 0 && this.game.bots.length > 0) {
+                    update(this.refs.registry, { missionStatus: 'complete' }).catch(() => { });
+                }
             }
         }
     }
