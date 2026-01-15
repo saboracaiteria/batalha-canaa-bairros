@@ -22,7 +22,7 @@ console.log(`
 // Variáveis globais do jogo original
 let scene, camera, renderer, clock, playerGroup, charModel, zoneMesh, sunObj;
 let cameraYaw = 0, cameraPitch = 0, vY = 0, jumps = 0;
-let isPlaying = false, isPaused = false, isRunning = false, isADS = false, isShooting = false, isFPS = false;
+let isPlaying = false, isPaused = false, isRunning = false, isADS = false, isShooting = false, isFPS = false, isMultiplayer = false;
 let currentWeapon = 'AR', grenadeType = 'explosive', currentGameMode = 'solo';
 let bullets = [], bots = [], obstacles = [], obstacleBoxes = [], grenades = [], effects = [], medkits = [];
 let otherPlayers = {}; // 🌐 Multiplayer peers
@@ -1596,7 +1596,7 @@ window.initGame = (mode) => {
     try {
         playerName = document.getElementById('player-name').value || "OPERADOR";
         missionAccomplished = false;
-        missionAccomplished = false;
+        isMultiplayer = (mode === 'multi');
         playerKills = 0;
         matchStartTime = Date.now(); // Logic Restore
 
