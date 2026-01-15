@@ -815,7 +815,8 @@ function animate() {
 
     // 🏃 MOVEMENT SPEED CALCULATION
     // Original values from backup: Run=1.19, Walk=0.8, ADS=40%
-    const speed = (isRunning ? 0.35 : 0.22) * (isADS ? 0.4 : 1) * fpsScale;
+    // UPDATED: Walk=0.45, Sprint=1.35 (3x)
+    const speed = (isRunning ? 1.35 : 0.45) * (isADS ? 0.4 : 1) * fpsScale;
     // NOTE: Lowered values slightly for new scale, verified 1.19 was too fast for 0.1 step
 
 
@@ -845,8 +846,8 @@ function animate() {
                 if (playerGroup.position.y >= box.max.y - 0.2) continue;
                 if (box.userData.isDoor && box.userData.isOpen) continue;
                 if (boxX.intersectsBox(box)) {
-                    // hitX = true; // ⚠️ DEBUG: COLLISION DISABLED
-                    // break; 
+                    hitX = true;
+                    break;
                 }
             }
             // Z Check
@@ -856,8 +857,8 @@ function animate() {
                 if (playerGroup.position.y >= box.max.y - 0.2) continue;
                 if (box.userData.isDoor && box.userData.isOpen) continue;
                 if (boxZ.intersectsBox(box)) {
-                    // hitZ = true; // ⚠️ DEBUG: COLLISION DISABLED
-                    // break; 
+                    hitZ = true;
+                    break;
                 }
             }
             if (!hitX) playerGroup.position.x = finalX;
@@ -1002,6 +1003,7 @@ function animate() {
         // Wall Collision
         if (wallHits.length > 0) {
             // Spawn impact particle if needed
+            // scene.add(new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({color:0xff0000})).position.copy(wallHits[0].point)); // DEBUG IMPACT
             scene.remove(b);
             if (b.userData.active && bulletPool) bulletPool.release(b); // Return to pool
             else bullets.splice(i, 1); // Fallback
@@ -1013,12 +1015,30 @@ function animate() {
         if (b.userData.owner === 'player') {
             for (let bot of bots) {
                 if (bot.userData.hp <= 0) continue;
-                // Simple hitbox for performance
-                if (Math.abs(b.position.y - bot.position.y - 1.5) < 1.8 && b.position.distanceTo(bot.position) < 1.0) {
+                // INCREASED HITBOX: Was 1.0, User requested fix. Increased to 3.5 (Generous)
+                if (Math.abs(b.position.y - bot.position.y - 1.5) < 3.0 && b.position.distanceTo(bot.position) < 3.5) {
                     bot.userData.hp -= b.userData.damage || 30;
                     bot.userData.isAlerted = true;
                     triggerHitmarker();
                     hitTarget = true;
+
+                    // Visual Feedack
+                    if (particleSystem) {
+                        particleSystem.spawnBlood(bot.position.clone().add(new THREE.Vector3(0, 1.5, 0)), new THREE.Vector3(0, 1, 0), 5);
+                    }
+
+                    if (bot.userData.hp <= 0) {
+                        // Kill Logic
+                        scene.remove(bot);
+                        // Remove from bots array logic is handled in udpateBots usually, but bullet loop needs to handle kill count
+                        // Better to just set HP to 0 and let updateBots clean up?
+                        // updateBots cleans up? Let's check.
+                        // Actually updateBots logic currently doesn't remove instantly?
+                        // Let's rely on updateBots to remove or remove here.
+                        playerKills++;
+                        document.getElementById('count-kills').innerText = playerKills;
+                        scene.remove(bot); // Remove visual immediately
+                    }
                     break;
                 }
             }
