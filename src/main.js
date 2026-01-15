@@ -3,7 +3,7 @@ import { CharacterFactory } from './entities/CharacterFactory.js';
 import { ObjectPool } from './utils/ObjectPool.js';
 import { ParticleSystem } from './systems/Particle.js';
 import { Network } from './systems/Network.js'; // 🌐 PORTED MULTIPLAYER
-import './ui/HudEditor.js'; // HUD customization
+import { openHudEditor, initHudEditor, loadHudLayout } from './ui/HudEditor.js'; // HUD customization
 import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -195,11 +195,10 @@ function createDetailedHouse(x, z, houseId) {
     const geometries = {
         parede: [],
         concreto: [],
-        metal: [],
-        madeira: [],
         saco: []
     };
-    const invisibleMat = new THREE.MeshBasicMaterial({ visible: false }); // FÍSICA INVISÍVEL
+    // FIX: visible:false objects are ignored by Raycaster by default. Use transparent/opacity 0 instead.
+    const invisibleMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0, depthWrite: false }); // FÍSICA INVISÍVEL
 
     // --- 1. MATERIAIS ---
     const matParede = new THREE.MeshStandardMaterial({ color: 0xbfae95, roughness: 1.0, side: THREE.DoubleSide });
@@ -1305,6 +1304,30 @@ function updateBots(deltaTime) {
            reference errors to 'obstacleBoxes' which might be different in this scope.
            But this restores the 'Strafing' and 'Shoot' behavior.
         */
+        // Gravity for Bots
+        // Simplified Floor Detection (assuming flat or map bounds)
+        // If we want them to walk on houses, we need raycasts.
+        // For performance, we can do a simple check:
+        // Raycast down from bot pos
+        const botRay = new THREE.Raycaster(
+            bot.position.clone().add(new THREE.Vector3(0, 1.5, 0)),
+            new THREE.Vector3(0, -1, 0)
+        );
+        // Optimize: Only check ground obstacles for bots
+        botRay.far = 10;
+        const bHits = botRay.intersectObjects(groundObstacles); // Reuse global groundObstacles
+        const bFloorY = (bHits.length > 0) ? bHits[0].point.y : 0;
+
+        if (!bot.userData.vY) bot.userData.vY = 0;
+        bot.position.y += bot.userData.vY * deltaTime * 60; // Approximate FPS scale
+
+        if (bot.position.y > bFloorY) {
+            bot.userData.vY -= 0.04; // Gravity
+        } else {
+            bot.position.y = bFloorY;
+            bot.userData.vY = 0;
+        }
+
     });
 }
 
@@ -1405,6 +1428,11 @@ window.initGame = (mode) => {
 
         setupThree();
         setupMinimap();
+
+        // 🎨 HUD EDITOR INIT
+        window.openHudEditor = openHudEditor;
+        initHudEditor();
+        loadHudLayout(); // Load saved positions
 
         // 🌐 INIT MULTIPLAYER
         const network = new Network({ scene, player: playerGroup, health, playerKills, bots, setupBotsPeriphery: setupBotsPeriphery, syncBot: window.syncBot, clearBots: window.clearBots, cleanupBots: window.cleanupBots, cameraYaw: cameraYaw });

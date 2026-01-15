@@ -190,7 +190,7 @@ function saveHudLayout() {
     console.log('✅ Layout do HUD salvo!', layout);
 }
 
-function loadHudLayout() {
+export function loadHudLayout() {
     const saved = localStorage.getItem('hud-layout');
     if (!saved) return;
 
