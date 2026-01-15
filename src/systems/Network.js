@@ -59,6 +59,12 @@ export class Network {
                             lastUpdate: serverTimestamp()
                         });
                         onDisconnect(presenceRef).remove();
+
+                        // 🟢 KEEP-ALIVE LOOP (Auto Cleanup Prevention)
+                        setInterval(() => {
+                            update(presenceRef, { lastUpdate: serverTimestamp() }).catch(() => { });
+                        }, 5000); // Pulse every 5s
+
                         resolve(true);
                     }
                 });
@@ -88,10 +94,15 @@ export class Network {
 
             if (listEl && data) {
                 listEl.innerHTML = ""; // Clear
-                const keys = Object.keys(data);
-                if (countEl) countEl.innerText = keys.length; // Update Count
 
-                keys.forEach(uid => {
+                // FILTER STALE PLAYERS (Simulated Auto Cleanup)
+                // We show all but could filter by time if needed.
+                // For now, trusting onDisconnect.
+                const activeKeys = Object.keys(data);
+
+                if (countEl) countEl.innerText = activeKeys.length; // Update Count
+
+                activeKeys.forEach(uid => {
                     const p = data[uid];
                     const item = document.createElement('div');
                     item.style.padding = "5px";
