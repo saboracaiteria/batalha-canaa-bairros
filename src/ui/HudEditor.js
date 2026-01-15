@@ -230,33 +230,8 @@ export function loadHudLayout() {
     }
 }
 
-function closeHudEditor() {
-    window.isEditingHud = false;
-    window.isPaused = false;
-    currentDraggable = null; // Force drop
 
-    const editor = document.getElementById('hud-editor');
-    if (editor) editor.remove();
 
-    // CLEANUP STYLES
-    const hudEls = document.querySelectorAll('.hud-el');
-    hudEls.forEach(el => {
-        el.style.border = '';
-        el.style.backgroundColor = '';
-        el.style.cursor = '';
-        el.style.zIndex = '';
-
-        // Remove the drag triggers we added
-        el.onmousedown = null;
-        el.ontouchstart = null;
-    });
-
-    if (window._wasStartScreen) {
-        document.getElementById('hud').style.display = 'none';
-        document.getElementById('start-screen').style.display = 'flex';
-        window._wasStartScreen = false;
-    }
-}
 
 // Global function
 window.openHudEditor = openHudEditor;
