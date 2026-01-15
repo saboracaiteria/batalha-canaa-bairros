@@ -1679,7 +1679,10 @@ window.initGame = (mode) => {
         // NOTE: Above object is a mock game reference. Ideally we pass 'this' but strict mode prevents it. 
         // We will assign a global 'gameInstance' reference for cleaner access later.
         window.gameNetwork = network; // Expose for debugging
-        network.connect(); // Connect auth
+        network.connect().then(() => {
+            // Once connected, listen to lobby
+            if (network.listenToPublicPresence) network.listenToPublicPresence();
+        });
 
         isPlaying = true;
 
