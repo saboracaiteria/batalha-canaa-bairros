@@ -34,7 +34,8 @@ let mapRadiusLimit = 1050;
 let missionAccomplished = false;
 let solidObstacles = [], groundObstacles = [];
 let minimapCtx, minimapCanvas;
-let moveVec = new THREE.Vector2(), moveTouchId = null, lookTouchId = null, fireTouchId = null;
+let moveVec = new THREE.Vector2(), keyMoveVec = new THREE.Vector2(); // Separated inputs
+let moveTouchId = null, lookTouchId = null, fireTouchId = null;
 let lastX = 0, lastY = 0, fireLastX = 0, fireLastY = 0;
 // isEditingHud removed (using window.isEditingHud)
 let cfg = { bots: 10, diff: 2, sens: 0.0165, fov: 75, graphics: 'low' };
@@ -479,7 +480,26 @@ function setupGameInput() {
     window.addEventListener('touchstart', e => {
         if (window.isEditingHud || isPaused) return;
         for (let t of e.changedTouches) {
-            if (t.clientX < window.innerWidth / 2.5) moveTouchId = t.identifier;
+            // DYNAMIC JOYSTICK LOGIC
+            // Only trigger if on left half and NOT on a hud element
+            const isLeftHalf = t.clientX < window.innerWidth / 2;
+            const isHudButton = t.target.classList.contains('hud-el');
+
+            if (isLeftHalf && !isHudButton && moveTouchId === null) {
+                moveTouchId = t.identifier;
+
+                // Position Joystick at touch point
+                const zone = document.getElementById('joy-zone');
+                const knob = document.getElementById('joy-knob');
+
+                zone.style.display = 'block';
+                zone.style.left = (t.clientX - 70) + 'px'; // Center 140px zone
+                zone.style.top = (t.clientY - 70) + 'px';
+
+                knob.style.transform = 'translate(-50%, -50%)';
+                moveVec.set(0, 0);
+            }
+            // Fire/Look Logic
             else if (t.target.closest('#btn-fire-ads')) { fireTouchId = t.identifier; fireLastX = t.clientX; fireLastY = t.clientY; isShooting = true; isADS = true; camera.fov = currentWeapon === 'SNIPER' ? 12 : 30; camera.updateProjectionMatrix(); if (currentWeapon === 'SNIPER') document.getElementById('sniper-scope').style.display = 'block'; }
             else if (t.target.closest('#btn-fire-hip')) { fireTouchId = t.identifier; fireLastX = t.clientX; fireLastY = t.clientY; isShooting = true; isADS = false; camera.fov = cfg.fov; camera.updateProjectionMatrix(); }
             else if (!t.target.classList.contains('hud-el')) {
@@ -524,13 +544,43 @@ function setupGameInput() {
     window.addEventListener('touchmove', e => {
         if (window.isEditingHud || isPaused) return;
         for (let t of e.changedTouches) {
-            if (t.identifier === moveTouchId) { const r = document.getElementById('joy-zone').getBoundingClientRect(); let dx = t.clientX - (r.left + r.width / 2), dy = t.clientY - (r.top + r.height / 2); const d = Math.hypot(dx, dy); if (d > 65) { dx *= 65 / d; dy *= 65 / d; } document.getElementById('joy-knob').style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; moveVec.set(dx / 65, -dy / 65); }
+            if (t.identifier === moveTouchId) {
+                const zone = document.getElementById('joy-zone');
+                // Calculate from center of the DYNAMIC zone position
+                const rect = zone.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+
+                let dx = t.clientX - centerX;
+                let dy = t.clientY - centerY;
+                const d = Math.hypot(dx, dy);
+                const maxRad = 65;
+
+                if (d > maxRad) {
+                    dx *= maxRad / d;
+                    dy *= maxRad / d;
+                }
+
+                document.getElementById('joy-knob').style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                // Normalize speed (0 to 1)
+                moveVec.set(dx / maxRad, -dy / maxRad);
+            }
             if (t.identifier === fireTouchId) { cameraYaw -= (t.clientX - fireLastX) * cfg.sens * 0.8; cameraPitch = Math.max(-1.5, Math.min(1.5, cameraPitch - (t.clientY - fireLastY) * cfg.sens * 1.2)); fireLastX = t.clientX; fireLastY = t.clientY; }
             if (t.identifier === lookTouchId) { cameraYaw -= (t.clientX - lastX) * cfg.sens; cameraPitch = Math.max(-1.5, Math.min(1.5, cameraPitch - (t.clientY - lastY) * cfg.sens)); lastX = t.clientX; lastY = t.clientY; }
         }
     }, { passive: false });
 
-    window.addEventListener('touchend', e => { for (let t of e.changedTouches) { if (t.identifier === moveTouchId) { moveTouchId = null; moveVec.set(0, 0); document.getElementById('joy-knob').style.transform = 'translate(-50%, -50%)'; } if (t.identifier === fireTouchId) { fireTouchId = null; isShooting = false; isADS = false; camera.fov = cfg.fov; camera.updateProjectionMatrix(); document.getElementById('sniper-scope').style.display = 'none'; } if (t.identifier === lookTouchId) lookTouchId = null; } });
+    window.addEventListener('touchend', e => {
+        for (let t of e.changedTouches) {
+            if (t.identifier === moveTouchId) {
+                moveTouchId = null;
+                moveVec.set(0, 0);
+                // Hide or Reset Joystick
+                document.getElementById('joy-zone').style.display = 'none';
+                document.getElementById('joy-knob').style.transform = 'translate(-50%, -50%)';
+            } if (t.identifier === fireTouchId) { fireTouchId = null; isShooting = false; isADS = false; camera.fov = cfg.fov; camera.updateProjectionMatrix(); document.getElementById('sniper-scope').style.display = 'none'; } if (t.identifier === lookTouchId) lookTouchId = null;
+        }
+    });
 
 
     // ============================================
@@ -607,7 +657,7 @@ function setupGameInput() {
             dy /= length;
         }
 
-        moveVec.set(dx, dy);
+        keyMoveVec.set(dx, dy); // Use separate vector
     }
 
     // Mouse controls
@@ -731,9 +781,21 @@ function animate() {
     // --- CORREÇÃO DE ROTAÇÃO: CORPO DE COSTAS PARA A CÂMERA (Math.PI adicionado) ---
     if (charModel) charModel.rotation.y = THREE.MathUtils.lerp(charModel.rotation.y, cameraYaw + Math.PI, 0.3 * fpsScale);
 
-    let inputX = moveVec.x; let inputY = moveVec.y;
-    const speed = (isRunning ? 1.19 : 0.8) * (isADS ? 0.4 : 1) * fpsScale;
-    const isMoving = moveVec.length() > 0.1;
+    // Combine Touch + Keyboard Input
+    let inputX = moveVec.x + keyMoveVec.x;
+    let inputY = moveVec.y + keyMoveVec.y;
+
+    // Clamp magnitude to 1.0 to prevent double speed
+    const currentLen = Math.hypot(inputX, inputY);
+    if (currentLen > 1) { inputX /= currentLen; inputY /= currentLen; }
+
+    // Use COMBINED input for moving check
+    const isMoving = Math.hypot(inputX, inputY) > 0.1;
+
+    // Debug for User
+    if (window._debugMode) {
+        console.log(`Input: ${inputX.toFixed(2)}, ${inputY.toFixed(2)} | Moving? ${isMoving}`);
+    }
 
     // --- ANIMAÇÃO DO JOGADOR LOCAL ---
     const playerAnimSpeed = isRunning ? 15 : 10;
