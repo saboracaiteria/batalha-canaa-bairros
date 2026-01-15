@@ -517,15 +517,67 @@
         </div>
 
         <!-- TAB: MULTIPLAYER -->
+        <!-- TAB: MULTIPLAYER (Reskinned) -->
         <div id="tab-multi" style="display: none; width: 100%; max-width: 500px;">
-            <div class="pause-label">// STATUS: <span id="status-multi-msg"
-                    style="color: var(--ui-cyan);">CONECTANDO...</span></div>
-            <div id="room-browser"
-                style="margin: 10px 0; max-height: 100px; overflow-y: auto; background: #111; padding: 10px;">
-                <!-- Room List -->
+            <!-- HEADER -->
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div class="pause-label" style="color: var(--ui-cyan); margin-bottom: 5px;">// OPERAÇÃO EM REDE</div>
+                <div style="font-size: 0.7rem; color: var(--ui-cyan); letter-spacing: 1px;">VÍNCULO ESTABELECIDO - SETOR
+                    CANAÃ</div>
             </div>
-            <button id="btn-init-multi" class="pause-btn yellow" onclick="initGame('multi')" style="width: 100%;"
-                disabled>ENTRAR NA OPERAÇÃO</button>
+
+            <!-- ROOM BOX -->
+            <div style="background: #0a0a0a; border: 1px solid #333; margin-bottom: 15px;">
+                <!-- Box Header -->
+                <div
+                    style="display: flex; justify-content: space-between; padding: 10px; background: #111; border-bottom: 1px solid #333;">
+                    <div style="color: var(--ui-cyan); font-weight: bold;">SETOR: CANAÃ</div>
+                    <div style="color: var(--ui-primary); font-weight: bold;"><span id="active-count">0</span> AGENTE(S)
+                        ATIVO(S)</div>
+                </div>
+                <!-- List -->
+                <div id="room-browser" style="padding: 10px; min-height: 50px; font-size: 0.8rem; color: #888;">
+                    AGENTES: AGUARDANDO CONEXÃO...
+                </div>
+                <div style="padding: 0 10px 10px 10px; font-size: 10px; color: var(--ui-cyan);">
+                    <span id="status-multi-msg">CONECTANDO...</span>
+                </div>
+            </div>
+
+            <!-- CONFIG ROW -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <!-- BOTS -->
+                <div style="flex: 1;">
+                    <div class="pause-label" style="margin-bottom: 5px;">// Nº BOTS NA SALA</div>
+                    <input type="number" id="multi-bot-count" value="10"
+                        style="width: 100%; padding: 10px; background: #000; border: none; border-left: 3px solid var(--ui-red); color: white;">
+                </div>
+                <!-- TEAM -->
+                <div style="flex: 1;">
+                    <div class="pause-label" style="margin-bottom: 5px;">// SUA EQUIPE</div>
+                    <select id="team-id"
+                        style="width: 100%; padding: 10px; background: #000; border: none; border-left: 3px solid var(--ui-red); color: white;">
+                        <option value="1">AZUL (ALIADOS)</option>
+                        <option value="2">VERMELHO (OPFOR)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- NETWORK ID -->
+            <div style="margin-bottom: 20px;">
+                <div class="pause-label" style="margin-bottom: 5px;">// IDENTIFICADOR DE REDE</div>
+                <input type="text" value="CANAÃ" disabled
+                    style="width: 100%; padding: 10px; background: #000; border: none; border-left: 3px solid var(--ui-cyan); color: var(--ui-cyan); font-weight: bold;">
+            </div>
+
+            <!-- BUTTON -->
+            <button id="btn-init-multi" class="pause-btn yellow" onclick="initGame('multi')"
+                style="width: 100%; padding: 15px; font-size: 1.1rem; font-weight: 900;" disabled>
+                [ ENTRAR NA OPERAÇÃO ]
+            </button>
+
+            <div style="margin-top: 20px; text-align: center; font-size: 0.6rem; color: #444;">// DEVELOPER:
+                _NILDOXZ<br>CANAÃ DOS CARAJÁS - 2026</div>
         </div>
 
         <!-- TAB: OPTIONS (Restored!) -->
