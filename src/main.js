@@ -25,6 +25,7 @@ let cameraYaw = 0, cameraPitch = 0, vY = 0, jumps = 0;
 let isPlaying = false, isPaused = false, isRunning = false, isADS = false, isShooting = false, isFPS = false;
 let currentWeapon = 'AR', grenadeType = 'explosive', currentGameMode = 'solo';
 let bullets = [], bots = [], obstacles = [], obstacleBoxes = [], grenades = [], effects = [], medkits = [];
+let otherPlayers = {}; // 🌐 Multiplayer peers
 let health = 100, armor = 100, lastShot = 0, lastDamageTime = 0, playerKills = 0;
 let particleSystem = null; // 🚀 Particle system for blood and effects
 let zoneRadius = 500, zoneActive = false;
@@ -978,11 +979,61 @@ function animate() {
         shootBullet();
     }
 
-    updateBullets(delta);
-    updateBots(delta); // AI
+    // 🔫 BULLET PHYSICS & COLLISION
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        const moveStep = tempVec.copy(b.userData.vel).multiplyScalar(fpsScale);
+        const prevPos = b.position.clone();
 
-    // 💣 Update grenades
-    updateGrenades(delta);
+        ray.ray.origin.copy(prevPos);
+        ray.ray.direction.copy(b.userData.vel).normalize();
+        ray.far = moveStep.length();
+        const wallHits = ray.intersectObjects(solidObstacles);
+
+        b.position.add(moveStep);
+
+        // Wall Collision
+        if (wallHits.length > 0) {
+            // Spawn impact particle if needed
+            scene.remove(b);
+            if (b.userData.active && bulletPool) bulletPool.release(b); // Return to pool
+            else bullets.splice(i, 1); // Fallback
+            continue;
+        }
+
+        // Target Collision (Bots)
+        let hitTarget = false;
+        if (b.userData.owner === 'player') {
+            for (let bot of bots) {
+                if (bot.userData.hp <= 0) continue;
+                // Simple hitbox for performance
+                if (Math.abs(b.position.y - bot.position.y - 1.5) < 1.8 && b.position.distanceTo(bot.position) < 1.0) {
+                    bot.userData.hp -= b.userData.damage || 30;
+                    bot.userData.isAlerted = true;
+                    triggerHitmarker();
+                    hitTarget = true;
+                    break;
+                }
+            }
+        }
+
+        // Remove if too old or hit
+        if (hitTarget) {
+            scene.remove(b);
+            if (b.userData.active && bulletPool) bulletPool.release(b);
+            else bullets.splice(i, 1);
+            continue;
+        }
+
+        b.userData.life -= 1 * fpsScale;
+        if (b.userData.life <= 0) {
+            scene.remove(b);
+            if (b.userData.active && bulletPool) bulletPool.release(b);
+            else bullets.splice(i, 1);
+        }
+    }
+
+    updateBots(delta); // AI
 
     // Update minimap
     updateMinimap();
@@ -1456,6 +1507,15 @@ window.throwGrenade = throwGrenade;
 window.toggleCamera = () => {
     isFPS = !isFPS;
     console.log('👁️ Camera Toggled:', isFPS ? "1st Person" : "3rd Person");
+};
+
+window.triggerHitmarker = () => {
+    const hm = document.getElementById('hitmarker');
+    if (hm) {
+        hm.style.display = 'block';
+        setTimeout(() => hm.style.display = 'none', 100);
+    }
+    playSfx('hit');
 };
 
 window.abortGame = () => {
