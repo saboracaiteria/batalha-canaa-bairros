@@ -1261,6 +1261,7 @@ function spawnBot(isAlly) {
     bot.userData.maxHP = 100;
     bot.userData.vel = new THREE.Vector3();
     bot.userData.lastKnownPos = new THREE.Vector3(x, 0, z); // Fix for crash at line 1306
+    bot.userData.targetPos = new THREE.Vector3(x, 0, z); // Fix for crash at line 1364
 
     const hb = createNPCHealthBar();
     bot.add(hb);
