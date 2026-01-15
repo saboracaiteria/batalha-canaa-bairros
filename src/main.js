@@ -1312,6 +1312,14 @@ function spawnBot(isAlly) {
     bots.push(bot);
 }
 
+function setupBotsPeriphery() {
+    console.log("🤖 Inicializando Bots...");
+    for (let i = 0; i < (cfg.bots || 10); i++) {
+        spawnBot(false);
+    }
+    initialBotsSpawned = true;
+}
+
 // 🧠 ADVANCED AI (PORTED FROM BACKUP)
 // 🤖 ATUALIZAÇÃO DOS BOTS (I.A. ORIGINAL PORTADA)
 function updateBots(deltaTime) {
