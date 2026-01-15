@@ -195,6 +195,8 @@ function createDetailedHouse(x, z, houseId) {
     const geometries = {
         parede: [],
         concreto: [],
+        metal: [],
+        madeira: [],
         saco: []
     };
     // FIX: visible:false objects are ignored by Raycaster by default. Use transparent/opacity 0 instead.
