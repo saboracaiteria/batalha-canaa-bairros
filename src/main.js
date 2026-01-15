@@ -1532,21 +1532,7 @@ function createNPCHealthBar() {
 
 
 
-function setupBotsPeriphery() {
-    const enemyCount = cfg.bots;
-    for (let i = 0; i < enemyCount; i++) {
-        spawnBot(false);
-    }
 
-    if (currentGameMode === 'duo') spawnBot(true);
-    if (currentGameMode === 'squad') {
-        for (let i = 0; i < 3; i++) spawnBot(true);
-    }
-    if (currentGameMode === 'duo') spawnBot(true);
-    if (currentGameMode === 'squad') {
-        for (let i = 0; i < 3; i++) spawnBot(true);
-    }
-}
 
 // 🌐 NETWORK HELPERS
 window.clearBots = () => {
