@@ -1279,14 +1279,25 @@ function updateBullets(deltaTime) {
             // Increased radius slightly for easier hits (2 -> 3)
             if (bullet.position.distanceTo(botCenter) < 3.0) {
                 // Hit!
-                bots[j].userData.hp -= currentWeapon === 'SNIPER' ? 75 : 25;
+                let damage = currentWeapon === 'SNIPER' ? 75 : 25;
+
+                // 🤯 HEADSHOT CHECK
+                // If bullet is high relative to bot feet
+                const isHeadshot = (bullet.position.y - bots[j].position.y) > 1.6;
+                if (isHeadshot) {
+                    damage *= 2;
+                    playSfx('hit'); // Double sound for feedback?
+                    // Ideally show "HEADSHOT" UI or separate hitmarker sound
+                }
+
+                bots[j].userData.hp -= damage;
 
                 // 🚀 Spawn blood splatter particles
                 if (particleSystem) {
                     particleSystem.spawnBlood(
-                        bots[j].position.clone(),
+                        bots[j].position.clone().add(new THREE.Vector3(0, isHeadshot ? 1.7 : 1.2, 0)),
                         bullet.userData.vel.clone().normalize(),
-                        5 // 5 blood particles
+                        isHeadshot ? 8 : 4
                     );
                 }
 
@@ -1502,7 +1513,7 @@ function updateBots(deltaTime) {
                 // Ally targets enemies
                 let closestEnemy = null; let minDist = 300;
                 enemyBots.forEach(eb => { let d = bot.position.distanceTo(eb.position); if (d < minDist) { minDist = d; closestEnemy = eb; } });
-                if (closestEnemy) validTargetPoint = closestEnemy.position.clone();
+                if (closestEnemy) validTargetPoint = closestEnemy.position.clone().add(new THREE.Vector3(0, 1.4, 0)); // Aim at CHEST/HEAD
             } else {
                 // Enemy targets Player
                 validTargetPoint = hasLOS ? playerGroup.position.clone() : bot.userData.lastKnownPos.clone();
@@ -1544,8 +1555,9 @@ function createNPCHealthBar() {
     // Background (Black) - REMOVED per user request "nao quero a barra de vida preta"
     // const bg = new THREE.Mesh(new THREE.PlaneGeometry(6, 0.8), new THREE.MeshBasicMaterial({ color: 0x000000 }));
 
-    // Foreground (Red) - Smaller Scale (Gigantic fix)
-    const fg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+
+    // Foreground (Green initially)
+    const fg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
     // Reduced scale: 3.0 wide, 0.4 high (was 5.6, 0.6)
     fg.scale.set(3.0, 0.4, 1);
     fg.position.z = 0.1;
