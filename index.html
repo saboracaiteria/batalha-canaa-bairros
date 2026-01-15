@@ -371,6 +371,54 @@
                 pointer-events: none;
                 /* Let touches pass to zone */
             }
+
+            /* MOBILE LANDSCAPE COMPACT FIX */
+            @media (max-width: 900px) and (orientation: landscape) {
+                .overlay-screen {
+                    padding: 5px !important;
+                    justify-content: center !important;
+                }
+
+                .pause-title {
+                    font-size: 1.5rem !important;
+                    margin-bottom: 2px !important;
+                    margin-top: 0 !important;
+                }
+
+                .pause-option {
+                    margin-bottom: 2px !important;
+                    max-width: 400px;
+                }
+
+                .pause-label {
+                    font-size: 0.7rem !important;
+                    margin-bottom: 1px !important;
+                }
+
+                .pause-btn {
+                    padding: 4px 10px !important;
+                    font-size: 0.7rem !important;
+                    margin: 0 !important;
+                }
+
+                .pause-btn-row {
+                    margin-bottom: 5px !important;
+                    gap: 5px !important;
+                }
+
+                input,
+                select,
+                .cyber-slider {
+                    padding: 2px 5px !important;
+                    font-size: 0.8rem !important;
+                    height: 25px !important;
+                }
+
+                /* Start Screen specific */
+                #start-screen .pause-title {
+                    font-size: 1.8rem !important;
+                }
+            }
         </style>
     </head>
 
