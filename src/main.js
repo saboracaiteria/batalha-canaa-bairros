@@ -869,6 +869,85 @@ function animate() {
     document.getElementById('hp-bar').style.width = Math.max(0, health) + '%';
     document.getElementById('armor-bar').style.width = armor + '%';
 
+    // --- GRENADES PHYSICS & EFFECTS ---
+    for (let i = grenades.length - 1; i >= 0; i--) {
+        const g = grenades[i];
+        if (!g.userData.hasStopped) {
+            const moveDelta = tempVec.copy(g.userData.vel).multiplyScalar(fpsScale);
+            const nextPos = tempVec2.copy(g.position).add(moveDelta);
+
+            ray.ray.origin.copy(g.position);
+            ray.ray.direction.copy(g.userData.vel).normalize();
+            ray.far = moveDelta.length() + 0.6;
+            const hits = ray.intersectObjects(solidObstacles);
+
+            if (hits.length > 0) {
+                g.userData.hasStopped = true;
+                g.userData.vel.set(0, 0, 0);
+                g.position.copy(hits[0].point).add(hits[0].face.normal.multiplyScalar(0.4));
+            } else {
+                g.position.copy(nextPos);
+                g.userData.vel.y -= 0.025 * fpsScale; // Gravity
+            }
+            if (g.position.y < 0.25) {
+                g.userData.hasStopped = true;
+                g.userData.vel.set(0, 0, 0);
+                g.position.y = 0.25;
+            }
+        }
+        g.userData.life -= 1 * fpsScale;
+
+        // DETONATION
+        if (g.userData.life <= 0) {
+            if (g.userData.type === 'explosive') {
+                playSfx('exp');
+                // Explosion particles
+                for (let k = 0; k < 15; k++) {
+                    const p = new THREE.Mesh(new THREE.SphereGeometry(1.2, 4, 4), new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.9 }));
+                    p.position.copy(g.position).add(tempVec.set((Math.random() - 0.5) * 5, Math.random() * 3, (Math.random() - 0.5) * 5));
+                    scene.add(p);
+                    effects.push({ m: p, l: 45, type: 'explosion' });
+                }
+                // Damage Logic
+                bots.forEach(b => {
+                    if (b.position.distanceTo(g.position) < 30) {
+                        if (!(g.userData.owner === 'player' && b.userData.isAlly)) b.userData.hp -= 200;
+                    }
+                });
+                if (g.position.distanceTo(playerGroup.position) < 25 && g.userData.owner !== 'player') {
+                    health -= 30 * fpsScale; lastDamageTime = time;
+                }
+            } else {
+                // SMOKE GRENADE
+                for (let j = 0; j < 15; j++) {
+                    const smk = new THREE.Mesh(new THREE.SphereGeometry(12, 8, 8), new THREE.MeshStandardMaterial({ color: 0x999999, transparent: true, opacity: 0.8 }));
+                    smk.position.copy(g.position).add(tempVec.set((Math.random() - 0.5) * 20, Math.random() * 10, (Math.random() - 0.5) * 20));
+                    scene.add(smk);
+                    effects.push({ m: smk, l: 400, type: 'smoke' });
+                }
+            }
+            scene.remove(g);
+            grenades.splice(i, 1);
+        }
+    }
+
+    // --- EFFECTS UPDATE (Smoke / Explosion) ---
+    for (let i = effects.length - 1; i >= 0; i--) {
+        const ef = effects[i];
+        if (ef.type === 'explosion') {
+            ef.m.scale.multiplyScalar(1 + (0.08 * fpsScale));
+            ef.m.material.opacity *= (1 - (0.1 * fpsScale));
+        }
+        if (ef.type === 'smoke') {
+            ef.m.scale.multiplyScalar(1 + (0.002 * fpsScale));
+            ef.m.material.opacity *= (1 - (0.002 * fpsScale));
+        }
+        if (ef.l !== undefined) {
+            ef.l -= 1 * fpsScale;
+            if (ef.l <= 0) { scene.remove(ef.m); effects.splice(i, 1); }
+        }
+    }
+
     // Medkits interaction
     medkits.forEach((mk) => {
         if (mk.visible && playerGroup.position.distanceTo(mk.getWorldPosition(tempVec)) < 6) {
@@ -1434,6 +1513,30 @@ window.setMode = (mode, btn) => {
 
 
 // 🛠️ UI HELPERS (Global Access)
+// --- GRENADE LOGIC ---
+function throwGrenade() {
+    if (!isPlaying || isPaused) return;
+    const g = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), new THREE.MeshStandardMaterial({ color: grenadeType === 'explosive' ? 0x222222 : 0xeeeeee }));
+    g.position.copy(playerGroup.position).add(tempVec.set(0, 3.0, 0));
+
+    // Throw direction based on camera
+    ray.setFromCamera({ x: 0, y: 0 }, camera);
+    const dir = ray.ray.direction.clone().normalize();
+    const force = cameraPitch < -0.2 ? 1.2 : 3.8; // Low throw if looking down
+
+    // Metadata
+    g.userData = { vel: dir.multiplyScalar(force), life: 120, type: grenadeType, hasStopped: false, owner: 'player' };
+    scene.add(g);
+    grenades.push(g);
+
+    // Networking (Placeholder for now, logic exists in backup)
+    if (window.gameNetwork && window.gameNetwork.throwGrenade) {
+        window.gameNetwork.throwGrenade(g.userData);
+    }
+}
+// Expose globally for buttons
+window.throwGrenade = throwGrenade;
+
 window.toggleCamera = () => {
     isFPS = !isFPS;
     console.log('👁️ Camera Toggled:', isFPS ? "1st Person" : "3rd Person");
