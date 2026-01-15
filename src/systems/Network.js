@@ -42,6 +42,7 @@ export class Network {
 
     async connect() {
         console.log('🌐 Connecting to Firebase...');
+        alert('TENTANDO CONECTAR...'); // DEBUG MOBILE
         try {
             await signInAnonymously(this.auth);
             return new Promise((resolve) => {
@@ -49,6 +50,7 @@ export class Network {
                     if (user) {
                         this.currentUser = user;
                         console.log('✅ Connected as:', user.uid);
+                        alert('CONECTADO! UID: ' + user.uid.substr(0, 4)); // DEBUG MOBILE
                         this.setupRefs();
                         // Presence
                         const presenceRef = ref(this.db, `artifacts/${APP_ID}/public/data/${this.roomName}/${user.uid}`);
@@ -62,7 +64,7 @@ export class Network {
 
                         // 🟢 KEEP-ALIVE LOOP (Auto Cleanup Prevention)
                         setInterval(() => {
-                            update(presenceRef, { lastUpdate: serverTimestamp() }).catch(() => { });
+                            if (this.auth.currentUser) update(presenceRef, { lastUpdate: serverTimestamp() }).catch(() => { });
                         }, 5000); // Pulse every 5s
 
                         resolve(true);
