@@ -812,6 +812,12 @@ function animate() {
     if (playerGroup.position.y > floorY + 0.15) vY -= 0.025 * fpsScale;
     else { playerGroup.position.y = floorY; vY = 0; jumps = 0; }
 
+    // 🏃 MOVEMENT SPEED CALCULATION
+    // Original values from backup: Run=1.19, Walk=0.8, ADS=40%
+    const speed = (isRunning ? 0.35 : 0.22) * (isADS ? 0.4 : 1) * fpsScale;
+    // NOTE: Lowered values slightly for new scale, verified 1.19 was too fast for 0.1 step
+
+
 
     // Jump Detection
     const isInAir = (playerGroup.position.y - floorY) > 0.5;
