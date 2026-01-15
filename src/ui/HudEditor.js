@@ -5,36 +5,97 @@
 
 // Global state for main.js to check
 window.isEditingHud = false;
-let hudElements = [];
+
+// Dragging State
+let currentDraggable = null;
+let startX = 0, startY = 0;
+let initialLeft = 0, initialTop = 0;
 
 export function initHudEditor() {
     console.log('🎨 HUD Editor inicializado');
+    setupGlobalDragListeners();
+}
+
+/**
+ * Sets up global listeners once to avoid duplication/leaks
+ */
+function setupGlobalDragListeners() {
+    // Mouse Move
+    document.addEventListener('mousemove', (e) => {
+        if (!window.isEditingHud || !currentDraggable) return;
+        e.preventDefault();
+        handleDragMove(e.clientX, e.clientY);
+    });
+
+    // Mouse Up
+    document.addEventListener('mouseup', () => {
+        if (currentDraggable) {
+            currentDraggable.style.cursor = 'grab';
+            currentDraggable = null;
+        }
+    });
+
+    // Touch Move
+    document.addEventListener('touchmove', (e) => {
+        if (!window.isEditingHud || !currentDraggable) return;
+        // Prevent scrolling while dragging HUD elements, but allow if not dragging
+        if (e.cancelable) e.preventDefault();
+        const t = e.touches[0];
+        handleDragMove(t.clientX, t.clientY);
+    }, { passive: false });
+
+    // Touch End
+    document.addEventListener('touchend', () => {
+        if (currentDraggable) {
+            currentDraggable = null;
+        }
+    });
+}
+
+function handleDragMove(clientX, clientY) {
+    const dx = clientX - startX;
+    const dy = clientY - startY;
+
+    currentDraggable.style.left = (initialLeft + dx) + 'px';
+    currentDraggable.style.top = (initialTop + dy) + 'px';
+    currentDraggable.style.bottom = 'auto';
+    currentDraggable.style.right = 'auto';
+}
+
+function startDrag(element, clientX, clientY) {
+    if (!window.isEditingHud) return;
+
+    currentDraggable = element;
+    startX = clientX;
+    startY = clientY;
+
+    const rect = element.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+
+    element.style.cursor = 'grabbing';
 }
 
 export function openHudEditor() {
-    // Check removed: Allow editing anytime
-    // if (!window.isPlaying) ...
-
     window.isPaused = true;
     window.isEditingHud = true;
 
-    // Show HUD if not visible (e.g. from Start Screen)
+    // Show HUD if not visible
     const storedStartDisplay = document.getElementById('start-screen').style.display;
     if (document.getElementById('hud').style.display === 'none') {
         document.getElementById('hud').style.display = 'block';
         document.getElementById('start-screen').style.display = 'none';
-        // Store state to restore later
         window._wasStartScreen = true;
     }
 
-    // Create editor overlay (Transparent, just for the button)
+    // Create editor overlay (Save button)
     const editor = document.createElement('div');
     editor.id = 'hud-editor';
     editor.style.cssText = `
         position: fixed;
         inset: 0;
         z-index: 10000;
-        pointer-events: none; /* Let clicks pass through to HUD elements */
+        pointer-events: none;
     `;
 
     editor.innerHTML = `
@@ -51,7 +112,7 @@ export function openHudEditor() {
             border-radius: 20px;
             font-weight: bold;
             cursor: pointer;
-            pointer-events: auto; /* Enable clicking on this button */
+            pointer-events: auto;
             box-shadow: 0 0 10px #00ff00;
             font-family: inherit;
             text-transform: uppercase;
@@ -60,79 +121,55 @@ export function openHudEditor() {
 
     document.body.appendChild(editor);
 
-    // Make all HUD elements draggable
+    // Prepare HUD elements
     const hudEls = document.querySelectorAll('.hud-el');
     hudEls.forEach(el => {
-        el.style.border = '2px dashed #00ff00'; // Green dashed border
-        el.style.backgroundColor = 'rgba(0, 255, 0, 0.2)'; // Slight highlight
+        el.style.border = '2px dashed #00ff00';
+        el.style.backgroundColor = 'rgba(0, 255, 0, 0.2)';
         el.style.pointerEvents = 'auto';
         el.style.zIndex = '10001';
         el.style.position = 'absolute';
-        makeDraggable(el);
+        el.style.cursor = 'grab';
+
+        // Attach local start listeners (Idempotent-ish if we remove them? No, better to just leave them or use a flag)
+        // Since we re-run this function, we should ideally check if listener is attached. 
+        // A simpler way: Remove old listener first (not easy with anonymous funcs) 
+        // OR: Just assign onclick/ontouchstart properties directly (simpler but hacky)
+        // OR: Use a custom prop to check.
+
+        // CLEANER: Let's just use the global document listener approach but we need to know WHICH element was clicked.
+        // We can add the 'mousedown'/'touchstart' here.
+
+        el.onmousedown = (e) => {
+            e.stopPropagation();
+            startDrag(el, e.clientX, e.clientY);
+        };
+
+        el.ontouchstart = (e) => {
+            if (window.isEditingHud) e.stopPropagation(); // Stop propagation only in edit mode
+            // Don't prevent default here to allow clicking buttons in normal mode? 
+            // Actually in edit mode we might want to prevent default button action.
+            if (window.isEditingHud) {
+                if (e.cancelable) e.preventDefault();
+                startDrag(el, e.touches[0].clientX, e.touches[0].clientY);
+            }
+        };
     });
 
-    // Save button
-    document.getElementById('save-hud-btn').onclick = () => {
+    // Save button logic
+    const saveBtn = document.getElementById('save-hud-btn');
+    saveBtn.onclick = () => {
         saveHudLayout();
         closeHudEditor();
     };
-}
 
-function makeDraggable(element) {
-    let isDragging = false;
-    let startX, startY, initialLeft, initialTop;
-
-    // MOUSE EVENTS
-    element.addEventListener('mousedown', startDrag);
-    document.addEventListener('mousemove', moveDrag);
-    document.addEventListener('mouseup', endDrag);
-
-    // TOUCH EVENTS (Mobile)
-    element.addEventListener('touchstart', (e) => {
-        if (e.cancelable) e.preventDefault(); // Prevent scroll
-        startDrag(e.touches[0]);
-    }, { passive: false });
-
-    document.addEventListener('touchmove', (e) => {
-        if (isDragging && e.cancelable) e.preventDefault();
-        moveDrag(e.touches[0]);
-    }, { passive: false });
-
-    document.addEventListener('touchend', endDrag);
-
-    function startDrag(e) {
-        if (!window.isEditingHud) return;
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-
-        const rect = element.getBoundingClientRect();
-        initialLeft = rect.left;
-        initialTop = rect.top;
-
-        element.style.cursor = 'grabbing';
-    }
-
-    function moveDrag(e) {
-        if (!isDragging) return;
-
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-
-        element.style.left = (initialLeft + dx) + 'px';
-        element.style.top = (initialTop + dy) + 'px';
-        element.style.bottom = 'auto'; // Clear bottom/right to rely on top/left
-        element.style.right = 'auto';
-    }
-
-    function endDrag() {
-        if (isDragging) {
-            isDragging = false;
-            element.style.cursor = 'grab';
-        }
-    }
-
-    element.style.cursor = 'grab';
+    // Mobile tap on save button
+    saveBtn.ontouchend = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        saveHudLayout();
+        closeHudEditor();
+    };
 }
 
 function saveHudLayout() {
@@ -140,6 +177,8 @@ function saveHudLayout() {
     const hudEls = document.querySelectorAll('.hud-el');
 
     hudEls.forEach(el => {
+        // Reset transform if any (joystick knob) before saving position? 
+        // Actually we save relative to viewport usually, or getBoundingClientRect
         const rect = el.getBoundingClientRect();
         layout[el.id] = {
             left: rect.left,
@@ -155,34 +194,44 @@ function loadHudLayout() {
     const saved = localStorage.getItem('hud-layout');
     if (!saved) return;
 
-    const layout = JSON.parse(saved);
-    Object.keys(layout).forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.style.left = layout[id].left + 'px';
-            el.style.top = layout[id].top + 'px';
-            el.style.bottom = 'auto';
-            el.style.right = 'auto';
-        }
-    });
+    try {
+        const layout = JSON.parse(saved);
+        Object.keys(layout).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.position = 'absolute'; // Ensure absolute
+                el.style.left = layout[id].left + 'px';
+                el.style.top = layout[id].top + 'px';
+                el.style.bottom = 'auto';
+                el.style.right = 'auto';
+            }
+        });
+    } catch (e) {
+        console.error("Erro ao carregar layout HUD:", e);
+    }
 }
 
 function closeHudEditor() {
     window.isEditingHud = false;
     window.isPaused = false;
+    currentDraggable = null; // Force drop
 
     const editor = document.getElementById('hud-editor');
     if (editor) editor.remove();
 
-    // Remove drag styling
+    // CLEANUP STYLES
     const hudEls = document.querySelectorAll('.hud-el');
     hudEls.forEach(el => {
         el.style.border = '';
+        el.style.backgroundColor = '';
         el.style.cursor = '';
-        el.style.zIndex = ''; // Reset z-index
+        el.style.zIndex = '';
+
+        // Remove the drag triggers we added
+        el.onmousedown = null;
+        el.ontouchstart = null;
     });
 
-    // Restore screens if we were on start screen
     if (window._wasStartScreen) {
         document.getElementById('hud').style.display = 'none';
         document.getElementById('start-screen').style.display = 'flex';
