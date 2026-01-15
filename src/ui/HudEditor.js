@@ -3,7 +3,8 @@
  * Permite arrastar e posicionar todos os elementos do HUD
  */
 
-let isEditingHud = false;
+// Global state for main.js to check
+window.isEditingHud = false;
 let hudElements = [];
 
 export function initHudEditor() {
@@ -15,7 +16,7 @@ export function openHudEditor() {
     // if (!window.isPlaying) ...
 
     window.isPaused = true;
-    isEditingHud = true;
+    window.isEditingHud = true;
 
     // Show HUD if not visible (e.g. from Start Screen)
     const storedStartDisplay = document.getElementById('start-screen').style.display;
@@ -100,7 +101,7 @@ function makeDraggable(element) {
     document.addEventListener('touchend', endDrag);
 
     function startDrag(e) {
-        if (!isEditingHud) return;
+        if (!window.isEditingHud) return;
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
@@ -167,7 +168,7 @@ function loadHudLayout() {
 }
 
 function closeHudEditor() {
-    isEditingHud = false;
+    window.isEditingHud = false;
     window.isPaused = false;
 
     const editor = document.getElementById('hud-editor');

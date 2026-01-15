@@ -36,7 +36,8 @@ let solidObstacles = [], groundObstacles = [];
 let minimapCtx, minimapCanvas;
 let moveVec = new THREE.Vector2(), moveTouchId = null, lookTouchId = null, fireTouchId = null;
 let lastX = 0, lastY = 0, fireLastX = 0, fireLastY = 0;
-let isEditingHud = false, cfg = { bots: 10, diff: 2, sens: 0.0165, fov: 75, graphics: 'low' };
+// isEditingHud removed (using window.isEditingHud)
+let cfg = { bots: 10, diff: 2, sens: 0.0165, fov: 75, graphics: 'low' };
 
 const tempVec = new THREE.Vector3();
 const tempVec2 = new THREE.Vector3();
@@ -476,7 +477,7 @@ function updateCollisionBoxes() {
 
 function setupGameInput() {
     window.addEventListener('touchstart', e => {
-        if (isEditingHud || isPaused) return;
+        if (window.isEditingHud || isPaused) return;
         for (let t of e.changedTouches) {
             if (t.clientX < window.innerWidth / 2.5) moveTouchId = t.identifier;
             else if (t.target.closest('#btn-fire-ads')) { fireTouchId = t.identifier; fireLastX = t.clientX; fireLastY = t.clientY; isShooting = true; isADS = true; camera.fov = currentWeapon === 'SNIPER' ? 12 : 30; camera.updateProjectionMatrix(); if (currentWeapon === 'SNIPER') document.getElementById('sniper-scope').style.display = 'block'; }
@@ -506,7 +507,7 @@ function setupGameInput() {
 
     document.querySelectorAll('.hud-el').forEach(el => {
         el.addEventListener('pointerdown', e => {
-            if (isEditingHud) { onHudTouchStart(e); return; }
+            if (window.isEditingHud) return;
             if (el.id === 'btn-jump') { if (!isPaused && jumps < 2) { vY = 0.8; jumps++; } }
             if (el.id === 'btn-ads') { if (!isPaused) { isADS = true; camera.fov = currentWeapon === 'SNIPER' ? 12 : 30; camera.updateProjectionMatrix(); if (currentWeapon === 'SNIPER') document.getElementById('sniper-scope').style.display = 'block'; } }
             if (el.id === 'btn-nade') { throwGrenade(); }
@@ -517,11 +518,11 @@ function setupGameInput() {
             if (el.id === 'btn-swap-nade') { grenadeType = (grenadeType === 'explosive' ? 'smoke' : 'explosive'); el.innerHTML = `BOMBA<br>(${grenadeType === 'explosive' ? 'EXPL' : 'FUMA'})`; }
             if (el.id === 'btn-switch-weapon') { currentWeapon = currentWeapon === 'AR' ? 'SNIPER' : 'AR'; el.innerHTML = `ARMA<br>(${currentWeapon === 'AR' ? 'FUSIL' : 'SNIPER'})`; }
         });
-        el.addEventListener('pointerup', e => { if (isEditingHud) return; if (el.id === 'btn-ads') { isADS = false; camera.fov = cfg.fov; camera.updateProjectionMatrix(); document.getElementById('sniper-scope').style.display = 'none'; } });
+        el.addEventListener('pointerup', e => { if (window.isEditingHud) return; if (el.id === 'btn-ads') { isADS = false; camera.fov = cfg.fov; camera.updateProjectionMatrix(); document.getElementById('sniper-scope').style.display = 'none'; } });
     });
 
     window.addEventListener('touchmove', e => {
-        if (isEditingHud || isPaused) return;
+        if (window.isEditingHud || isPaused) return;
         for (let t of e.changedTouches) {
             if (t.identifier === moveTouchId) { const r = document.getElementById('joy-zone').getBoundingClientRect(); let dx = t.clientX - (r.left + r.width / 2), dy = t.clientY - (r.top + r.height / 2); const d = Math.hypot(dx, dy); if (d > 65) { dx *= 65 / d; dy *= 65 / d; } document.getElementById('joy-knob').style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; moveVec.set(dx / 65, -dy / 65); }
             if (t.identifier === fireTouchId) { cameraYaw -= (t.clientX - fireLastX) * cfg.sens * 0.8; cameraPitch = Math.max(-1.5, Math.min(1.5, cameraPitch - (t.clientY - fireLastY) * cfg.sens * 1.2)); fireLastX = t.clientX; fireLastY = t.clientY; }
@@ -738,6 +739,17 @@ function animate() {
     const playerAnimSpeed = isRunning ? 15 : 10;
     const playerCycle = time * playerAnimSpeed;
 
+    // 🌍 GRAVITY & FLOOR DETECTION (Moved up to fix ReferenceError)
+    floorRay.ray.origin.copy(playerGroup.position).add(tempVec.set(0, 1.5, 0)); floorRay.ray.direction.set(0, -1, 0);
+    const floorHits = floorRay.intersectObjects(groundObstacles);
+    let floorY = (floorHits.length > 0) ? floorHits[0].point.y : 0;
+
+    // Gravity Application
+    playerGroup.position.y += vY * fpsScale;
+    if (playerGroup.position.y > floorY + 0.15) vY -= 0.025 * fpsScale;
+    else { playerGroup.position.y = floorY; vY = 0; jumps = 0; }
+
+
     // Jump Detection
     const isInAir = (playerGroup.position.y - floorY) > 0.5;
 
@@ -783,14 +795,8 @@ function animate() {
         }
     }
 
-    // Gravity (Simple Physics)
-    playerGroup.position.y += vY * fpsScale;
-    floorRay.ray.origin.copy(playerGroup.position).add(tempVec.set(0, 1.5, 0)); floorRay.ray.direction.set(0, -1, 0);
-    const floorHits = floorRay.intersectObjects(groundObstacles);
-    let floorY = (floorHits.length > 0) ? floorHits[0].point.y : 0;
-
-    if (playerGroup.position.y > floorY + 0.15) vY -= 0.025 * fpsScale;
-    else { playerGroup.position.y = floorY; vY = 0; jumps = 0; }
+    // Gravity (Simple Physics) - MOVED UP
+    // Logic was moved to line ~740 to support animation and physics consistency
 
     // Hit/Zone Logic...
     if (zoneActive && zoneRadius > 5) {
