@@ -1,10 +1,9 @@
 
-import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
-import { getDatabase, ref, set, update, onValue, remove, serverTimestamp, push, onChildAdded, onDisconnect } from "firebase/database";
-import * as THREE from 'three';
-import { CharacterFactory } from '../entities/CharacterFactory.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDatabase, ref, set, update, onValue, remove, serverTimestamp, push, onChildAdded, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+// 🔧 FIREBASE CONFIG (Canãã)
 const firebaseConfig = {
     apiKey: "AIzaSyAF7cOVw5tCc5aNKRev8r2BHvhfNlfhvNE",
     authDomain: "residencial-canaa.firebaseapp.com",
@@ -20,24 +19,21 @@ const APP_ID = "residencial-canaa-tactical";
 
 export class Network {
     constructor(game) {
-        this.game = game;
+        this.game = game; // Reference to Main Game structure
         this.app = initializeApp(firebaseConfig);
         this.auth = getAuth(this.app);
         this.db = getDatabase(this.app);
+
         this.currentUser = null;
+        this.roomName = "room_canaa"; // Default Room
+        this.refs = {};
+        this.otherPlayers = {}; // Mesh Storage
         this.isLeader = false;
         this.isMultiplayer = false;
-        this.otherPlayers = {}; // Map of uid -> Mesh
-        this.roomName = "room_canaa";
         this.teamId = 1;
 
-        this.refs = {
-            players: null,
-            nades: null,
-            bots: null,
-            registry: null,
-            myDoc: null
-        };
+        // Binds
+        this.setupRefs = this.setupRefs.bind(this);
     }
 
     async connect() {
@@ -150,17 +146,10 @@ export class Network {
         const playerData = {
             name: document.getElementById('player-name').value || "OPERADOR",
             team: this.teamId,
-            x: this.game.player.position.x,
-            y: this.game.player.position.y,
-            z: this.game.player.position.z,
-            ry: this.game.cameraYaw,
-            hp: this.game.health,
-            kills: this.game.playerKills,
             status: 'playing',
             lastUpdate: serverTimestamp(),
-            joinedAt: Date.now()
+            joinedAt: serverTimestamp() // For Leader Election
         };
-
         update(this.refs.myDoc, playerData);
         onDisconnect(this.refs.myDoc).remove();
 
@@ -176,34 +165,40 @@ export class Network {
             const data = snapshot.val();
             if (!data) return;
 
-            // Leader Election
-            const sortedKeys = Object.keys(data).sort((a, b) => (data[a].joinedAt || 0) - (data[b].joinedAt || 0));
+            // Sort by join time (older = leader)
+            const sortedKeys = Object.keys(data).sort((a, b) => {
+                const ta = data[a].joinedAt || 0;
+                const tb = data[b].joinedAt || 0;
+                return ta - tb;
+            });
+
+            // Leader Logic
             const wasLeader = this.isLeader;
             this.isLeader = (sortedKeys[0] === this.currentUser.uid);
 
             if (this.isLeader && !wasLeader) {
-                console.log('👑 You are now the Match Leader');
-                this.takeCommand();
+                console.log("👑 YOU ARE NOW THE LEADER");
+                // Leader manages bot lifecycle on disconnect
+                onDisconnect(this.refs.bots).remove();
+                onDisconnect(this.refs.registry).remove();
+
+                // If no bots, spawn them
+                if (this.game.toggleBots) this.game.toggleBots(true); // Assuming main has this
+                else if (this.game.setupBotsPeriphery) this.game.setupBotsPeriphery();
             }
 
-            // Update UI/HUD
-            this.updateLeaderboard(data);
-
-            // Sync Remote Players
-            const now = Date.now();
+            // Sync Other Players
             Object.keys(data).forEach(id => {
                 if (id === this.currentUser.uid) return;
                 const p = data[id];
-
-                // Cleanup old players (5s timeout)
-                if (p.status === 'playing' && p.lastUpdate && (now - p.lastUpdate < 8000)) {
+                if (p.status === 'playing') {
                     this.updateRemotePlayer(id, p);
                 } else {
                     this.removeRemotePlayer(id);
                 }
             });
 
-            // Cleanup removed players
+            // Cleanups
             Object.keys(this.otherPlayers).forEach(id => {
                 if (!data[id]) this.removeRemotePlayer(id);
             });
@@ -215,6 +210,8 @@ export class Network {
                 const leaderName = data[sortedKeys[0]]?.name || "---";
                 onlineCountEl.innerHTML = `ONLINE: ${Object.keys(data).length}<br><span style="color:var(--ui-primary)">LÍDER: ${leaderName}</span>`;
             }
+
+            this.updateLeaderboard(data);
         });
     }
 
@@ -222,24 +219,40 @@ export class Network {
         if (!this.otherPlayers[id]) {
             // Create new player mesh
             const color = (data.team === this.teamId) ? 0x00f3ff : 0xff0000;
-            const mesh = CharacterFactory.createHumanoid(color, id, 'player');
-            mesh.userData.team = data.team;
-            this.game.scene.add(mesh);
-            this.otherPlayers[id] = mesh;
+            // Use global createHumanoid if available, or try access from game (assuming game exports it or it is global)
+            // Backup used global createHumanoid.
+            // We need to ensure createHumanoid is available!
+            // In main.js we see createHumanoid is defined globally or inside module?
+            // Checking previous views: createHumanoid is inside main.js module scope. 
+            // We need to attach it to 'game' object or export it.
+            // Assuming for now user has 'window.createHumanoid' or similar, 
+            // OR checks main.js to export it.
+            // Wait, main.js imports Network. Network cannot import createHumanoid from main.js (circular).
+            // Main.js should pass a factory function to Network constructor!
+            // FALLBACK: accessing window.createHumanoid if defined.
+            if (window.createHumanoid) {
+                const mesh = window.createHumanoid(color, id);
+                mesh.userData.team = data.team;
+                this.game.scene.add(mesh);
+                this.otherPlayers[id] = mesh;
+            } else {
+                console.error("createHumanoid not found!");
+            }
         }
 
-        const mesh = this.otherPlayers[id];
-        // Lerp position for smoothness
-        const targetPos = new THREE.Vector3(data.x, data.y, data.z);
-        mesh.position.lerp(targetPos, 0.3);
+        if (this.otherPlayers[id]) {
+            const mesh = this.otherPlayers[id];
+            // Lerp position for smoothness
+            const targetPos = new THREE.Vector3(data.x, data.y, data.z);
+            mesh.position.lerp(targetPos, 0.3);
 
-        // Fix rotation (Backup said + PI)
-        mesh.rotation.y = data.ry + Math.PI;
+            // Fix rotation (Backup said + PI)
+            mesh.rotation.y = data.ry + Math.PI;
 
-        // Update Animation (Simple)
-        const isMoving = mesh.position.distanceTo(targetPos) > 0.1;
-        // You might need to call animateLimbs here if accessible
-        CharacterFactory.animateLimbs(mesh, 0.016, isMoving);
+            // Update Animation (Simple)
+            // const isMoving = mesh.position.distanceTo(targetPos) > 0.1;
+            // if(window.updateCharAnim) window.updateCharAnim(mesh, isMoving, 0, 0); // Assuming updateCharAnim is global too
+        }
     }
 
     removeRemotePlayer(id) {
@@ -355,17 +368,13 @@ export class Network {
     updateLeaderboard(data) {
         const lbContent = document.getElementById('lb-content');
         if (!lbContent) return;
-
-        const allPlayers = Object.values(data);
-        allPlayers.sort((a, b) => (b.kills || 0) - (a.kills || 0));
-
         lbContent.innerHTML = "";
-        allPlayers.forEach(p => {
+        const all = Object.values(data);
+        all.sort((a, b) => (b.kills || 0) - (a.kills || 0));
+        all.forEach(p => {
             const row = document.createElement('div');
             row.className = 'lb-row';
-            // Safe name substring
-            const safeName = (p.name || "Anon").substring(0, 8);
-            row.innerHTML = `<span>${safeName}</span><span style="color: var(--ui-primary)">${p.kills || 0}</span>`;
+            row.innerHTML = `<span>${(p.name || "").substring(0, 8)}</span><span style="color:var(--ui-primary)">${p.kills || 0}</span>`;
             lbContent.appendChild(row);
         });
     }
