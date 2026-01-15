@@ -1258,7 +1258,17 @@ function spawnBot(isAlly) {
     bot.position.set(x, 0, z);
     bot.userData.isAlly = isAlly;
     bot.userData.hp = 100;
+    bot.userData.maxHP = 100;
     bot.userData.vel = new THREE.Vector3();
+
+    const hb = createNPCHealthBar();
+    bot.add(hb);
+    bot.userData.hBar = hb.children[1]; // Store FG ref for scaling? No, store group checks children?
+    // Actually createNPCHealthBar returns a group. 
+    // Let's modify createNPCHealthBar to allow easy scaling.
+    // Re-implementation below uses fg.geometry.translate so we can scale the MESH directly.
+    bot.userData.hBar = hb.children[1]; // The Red Foreground
+
     scene.add(bot);
     bots.push(bot);
 }
@@ -1350,8 +1360,39 @@ function updateBots(deltaTime) {
             bot.userData.vY = 0;
         }
 
+        // Update Health Bar
+        if (bot.userData.hBar) {
+            // Scale red bar based on HP
+            bot.userData.hBar.scale.x = Math.max(0, bot.userData.hp / bot.userData.maxHP);
+            bot.userData.hBar.visible = bot.userData.hp < bot.userData.maxHP;
+            // Billboard effect (always face camera)
+            // Use parent group for orientation, but wait, hBar is the MESH inside the group.
+            // Checks spawnBot... bot.add(hb). hb is GROUP. bot.userData.hBar is MESH.
+            // So we need bot.userData.hBar.parent.lookAt...
+            if (bot.userData.hBar.parent) bot.userData.hBar.parent.lookAt(camera.position);
+        }
+
     });
 }
+
+function createNPCHealthBar() {
+    const group = new THREE.Group();
+    // Background (Black)
+    const bg = new THREE.Mesh(new THREE.PlaneGeometry(10, 1.5), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+    // Foreground (Red)
+    const fg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+    fg.scale.set(9.6, 1.1, 1);
+    fg.position.z = 0.1;
+    // Pivot hack: Translate geometry so scaling affects right side only
+    fg.geometry.translate(0.5, 0, 0);
+    fg.position.x = -4.8;
+
+    group.add(bg, fg);
+    group.position.y = 22; // Height above bot info
+    return group;
+}
+
+
 
 
 function setupBotsPeriphery() {

@@ -172,6 +172,25 @@ export function openHudEditor() {
     };
 }
 
+function closeHudEditor() {
+    const editor = document.getElementById('hud-editor');
+    if (editor) editor.remove();
+
+    // Reset state
+    window.isEditingHud = false;
+    window.isPaused = false;
+
+    // Reset styles
+    document.querySelectorAll('.hud-el').forEach(el => {
+        el.style.border = 'none';
+        el.style.backgroundColor = 'transparent';
+        el.style.cursor = 'default';
+        el.onmousedown = null; // Remove listeners? Ideally yes, or use flag in listener (which we do)
+    });
+
+    console.log('🎨 Editor fechado');
+}
+
 function saveHudLayout() {
     const layout = {};
     const hudEls = document.querySelectorAll('.hud-el');
