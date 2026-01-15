@@ -2,24 +2,59 @@
 <html lang="pt-pt">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="Residencial Canaã - Tactical Survival FPS Game optimizado para mobile">
-    <meta name="theme-color" content="#fcee0a">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <link rel="icon" type="image/x-icon" href="./favicon.ico">
-    <title>Residencial Canaã - Tactical Survival</title>
-    <script>
-        // 🚨 GLOBAL ERROR TRAP for Mobile Debugging
-        window.onerror = function (msg, url, line) {
-            alert("ERRO GLOBAL CRÍTICO:\n" + msg + "\nArquivo: " + url + "\nLinha: " + line);
-            return false;
-        };
-    </script>
-    <!-- IMPORT MAP (Fix for Unbundled/Render Environments) -->
-    <script type="importmap">
+    <style>
+        #sniper-scope {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2000;
+            display: none;
+            background: radial-gradient(circle, transparent 30%, black 70%);
+        }
+
+        #sniper-scope::before,
+        #sniper-scope::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #00ff00;
+        }
+
+        #sniper-scope::before {
+            width: 100vw;
+            height: 1px;
+            opacity: 0.5;
+        }
+
+        #sniper-scope::after {
+            width: 1px;
+            height: 100vh;
+            opacity: 0.5;
+        }
+    </style>
+
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <meta name="description" content="Residencial Canaã - Tactical Survival FPS Game optimizado para mobile">
+        <meta name="theme-color" content="#fcee0a">
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="0">
+        <link rel="icon" type="image/x-icon" href="./favicon.ico">
+        <title>Residencial Canaã - Tactical Survival</title>
+        <script>
+            // 🚨 GLOBAL ERROR TRAP for Mobile Debugging
+            window.onerror = function (msg, url, line) {
+                alert("ERRO GLOBAL CRÍTICO:\n" + msg + "\nArquivo: " + url + "\nLinha: " + line);
+                return false;
+            };
+        </script>
+        <!-- IMPORT MAP (Fix for Unbundled/Render Environments) -->
+        <script type="importmap">
         {
             "imports": {
                 "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
@@ -31,316 +66,316 @@
         }
     </script>
 
-    <!-- ES Module Import with Error Handler -->
-    <script type="module" src="./src/main.js"
-        onerror="alert('ERRO DE CARREGAMENTO! O arquivo do jogo não foi encontrado.\n\nISSO É UM ERRO DE CACHE!\n\nPor favor, limpe o cache do navegador ou abra em Aba Anônima.')">
-        </script>
-    <style>
-        :root {
-            --ui-primary: #fcee0a;
-            --ui-cyan: #00f3ff;
-            --ui-red: #ff003c;
-            --ui-orange: #ff4400;
-            --ui-bg: #0a0a0a;
-            --ui-glass: rgba(0, 0, 0, 0.6);
-            --ui-border: rgba(255, 255, 255, 0.3);
-        }
+        <!-- ES Module Import with Error Handler -->
+        <script type="module" src="./src/main.js"
+            onerror="alert('ERRO DE CARREGAMENTO! O arquivo do jogo não foi encontrado.\n\nISSO É UM ERRO DE CACHE!\n\nPor favor, limpe o cache do navegador ou abra em Aba Anônima.')">
+            </script>
+        <style>
+            :root {
+                --ui-primary: #fcee0a;
+                --ui-cyan: #00f3ff;
+                --ui-red: #ff003c;
+                --ui-orange: #ff4400;
+                --ui-bg: #0a0a0a;
+                --ui-glass: rgba(0, 0, 0, 0.6);
+                --ui-border: rgba(255, 255, 255, 0.3);
+            }
 
-        body {
-            margin: 0;
-            overflow: hidden;
-            /* Global overflow hidden to prevent "bounce" */
-            background: var(--ui-bg);
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            user-select: none;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
+            body {
+                margin: 0;
+                overflow: hidden;
+                /* Global overflow hidden to prevent "bounce" */
+                background: var(--ui-bg);
+                font-family: 'Segoe UI', Roboto, sans-serif;
+                user-select: none;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                -webkit-tap-highlight-color: transparent;
+            }
 
-        /* Game Layer: No Touch Actions (No Scroll/Zoom) */
-        #game-container,
-        #hud {
-            touch-action: none;
-        }
+            /* Game Layer: No Touch Actions (No Scroll/Zoom) */
+            #game-container,
+            #hud {
+                touch-action: none;
+            }
 
-        /* FONTS & UTILS */
-        .cyber-text {
-            text-transform: uppercase;
-            font-weight: 900;
-            font-style: italic;
-        }
+            /* FONTS & UTILS */
+            .cyber-text {
+                text-transform: uppercase;
+                font-weight: 900;
+                font-style: italic;
+            }
 
-        /* SCREENS */
-        #game-container {
-            position: absolute;
-            inset: 0;
-            z-index: 1;
-            display: none;
-            background: #000;
-            /* Fixed: Black background to avoid blue bars */
-        }
+            /* SCREENS */
+            #game-container {
+                position: absolute;
+                inset: 0;
+                z-index: 1;
+                display: none;
+                background: #000;
+                /* Fixed: Black background to avoid blue bars */
+            }
 
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            outline: none;
-        }
+            canvas {
+                display: block;
+                width: 100%;
+                height: 100%;
+                outline: none;
+            }
 
-        .overlay-screen {
-            position: fixed;
-            inset: 0;
-            background: black;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            /* Start from top to allow scroll */
-            color: white;
-            z-index: 1000;
-            text-align: center;
-            padding: 40px 20px;
-            /* More padding */
-            overflow-y: auto;
-            /* Allow vertical scroll */
-            -webkit-overflow-scrolling: touch;
-            /* Momentum scroll */
-        }
+            .overlay-screen {
+                position: fixed;
+                inset: 0;
+                background: black;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                /* Start from top to allow scroll */
+                color: white;
+                z-index: 1000;
+                text-align: center;
+                padding: 40px 20px;
+                /* More padding */
+                overflow-y: auto;
+                /* Allow vertical scroll */
+                -webkit-overflow-scrolling: touch;
+                /* Momentum scroll */
+            }
 
-        /* PAUSE MENU STYLE from Screenshot */
-        .pause-title {
-            font-size: 3rem;
-            color: var(--ui-primary);
-            text-shadow: 4px 4px 0px var(--ui-red);
-            margin-bottom: 30px;
-            letter-spacing: 5px;
-            flex-shrink: 0;
-            /* Prevent shrinking */
-        }
+            /* PAUSE MENU STYLE from Screenshot */
+            .pause-title {
+                font-size: 3rem;
+                color: var(--ui-primary);
+                text-shadow: 4px 4px 0px var(--ui-red);
+                margin-bottom: 30px;
+                letter-spacing: 5px;
+                flex-shrink: 0;
+                /* Prevent shrinking */
+            }
 
-        .pause-option {
-            width: 100%;
-            max-width: 500px;
-            margin-bottom: 15px;
-            text-align: left;
-            flex-shrink: 0;
-        }
+            .pause-option {
+                width: 100%;
+                max-width: 500px;
+                margin-bottom: 15px;
+                text-align: left;
+                flex-shrink: 0;
+            }
 
-        .pause-btn-row {
-            display: flex;
-            gap: 15px;
-            width: 100%;
-            max-width: 500px;
-            margin-bottom: 20px;
-            overflow-x: auto;
-            /* Horizontal Scroll for Tabs */
-            white-space: nowrap;
-            padding-bottom: 5px;
-            /* Space for scrollbar if any */
-            flex-shrink: 0;
-        }
+            .pause-btn-row {
+                display: flex;
+                gap: 15px;
+                width: 100%;
+                max-width: 500px;
+                margin-bottom: 20px;
+                overflow-x: auto;
+                /* Horizontal Scroll for Tabs */
+                white-space: nowrap;
+                padding-bottom: 5px;
+                /* Space for scrollbar if any */
+                flex-shrink: 0;
+            }
 
-        .pause-btn {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            color: white;
-            font-weight: 900;
-            text-transform: uppercase;
-            font-size: 0.9rem;
-            clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-            cursor: pointer;
-            /* Default Blue */
-            background: var(--ui-cyan);
-            color: black;
-        }
+            .pause-btn {
+                flex: 1;
+                padding: 15px;
+                border: none;
+                color: white;
+                font-weight: 900;
+                text-transform: uppercase;
+                font-size: 0.9rem;
+                clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+                cursor: pointer;
+                /* Default Blue */
+                background: var(--ui-cyan);
+                color: black;
+            }
 
-        .pause-btn.orange {
-            background: var(--ui-orange);
-            color: white;
-        }
+            .pause-btn.orange {
+                background: var(--ui-orange);
+                color: white;
+            }
 
-        .pause-btn.yellow {
-            background: var(--ui-primary);
-            color: black;
-        }
+            .pause-btn.yellow {
+                background: var(--ui-primary);
+                color: black;
+            }
 
-        .pause-btn.red {
-            background: var(--ui-red);
-            color: white;
-        }
+            .pause-btn.red {
+                background: var(--ui-red);
+                color: white;
+            }
 
-        .pause-btn.dark {
-            background: #333;
-            color: #fff;
-        }
+            .pause-btn.dark {
+                background: #333;
+                color: #fff;
+            }
 
-        .pause-link {
-            color: var(--ui-red);
-            text-decoration: none;
-            font-size: 0.8rem;
-            font-weight: bold;
-            display: block;
-            margin-bottom: 20px;
-            cursor: pointer;
-        }
+            .pause-link {
+                color: var(--ui-red);
+                text-decoration: none;
+                font-size: 0.8rem;
+                font-weight: bold;
+                display: block;
+                margin-bottom: 20px;
+                cursor: pointer;
+            }
 
 
-        /* HUD STYLES from Screenshot */
-        #hud {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            z-index: 100;
-            display: none;
-        }
+            /* HUD STYLES from Screenshot */
+            #hud {
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                z-index: 100;
+                display: none;
+            }
 
-        .hud-el {
-            position: absolute;
-            pointer-events: auto;
-            touch-action: none;
-            user-select: none;
-        }
+            .hud-el {
+                position: absolute;
+                pointer-events: auto;
+                touch-action: none;
+                user-select: none;
+            }
 
-        /* Top Banner */
-        #zone-banner {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 255, 0, 0.8);
-            color: black;
-            padding: 5px 20px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 12px;
-            border: 2px solid #fff;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-            white-space: nowrap;
-        }
+            /* Top Banner */
+            #zone-banner {
+                position: absolute;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 255, 0, 0.8);
+                color: black;
+                padding: 5px 20px;
+                border-radius: 20px;
+                font-weight: bold;
+                font-size: 12px;
+                border: 2px solid #fff;
+                box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+                white-space: nowrap;
+            }
 
-        /* Top Right Icons */
-        #top-icons {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            pointer-events: auto;
-        }
+            /* Top Right Icons */
+            #top-icons {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                pointer-events: auto;
+            }
 
-        .icon-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 20px;
-        }
+            .icon-btn {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: rgba(0, 0, 0, 0.5);
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 20px;
+            }
 
-        /* Stats Box */
-        #stats-box {
-            position: absolute;
-            top: 20px;
-            right: 80px;
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            padding: 10px;
-            text-align: right;
-            color: white;
-            font-size: 12px;
-            line-height: 1.4;
-            backdrop-filter: blur(4px);
-        }
+            /* Stats Box */
+            #stats-box {
+                position: absolute;
+                top: 20px;
+                right: 80px;
+                background: rgba(0, 0, 0, 0.6);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 8px;
+                padding: 10px;
+                text-align: right;
+                color: white;
+                font-size: 12px;
+                line-height: 1.4;
+                backdrop-filter: blur(4px);
+            }
 
-        /* Circular Buttons */
-        .hud-btn-circle {
-            background: rgba(0, 0, 0, 0.6);
-            /* Darker background */
-            border: 2px solid #fff;
-            /* White standard border, overridden by style */
-            border-radius: 50%;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            font-weight: bold;
-            backdrop-filter: blur(4px);
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-        }
+            /* Circular Buttons */
+            .hud-btn-circle {
+                background: rgba(0, 0, 0, 0.6);
+                /* Darker background */
+                border: 2px solid #fff;
+                /* White standard border, overridden by style */
+                border-radius: 50%;
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                font-weight: bold;
+                backdrop-filter: blur(4px);
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            }
 
-        /* Dashed Circle for "Shoot" */
-        .dashed-border {
-            border-style: dashed !important;
-        }
+            /* Dashed Circle for "Shoot" */
+            .dashed-border {
+                border-style: dashed !important;
+            }
 
-        /* Health Bar (Bottom Center) */
-        #health-container {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 300px;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            pointer-events: none;
-        }
+            /* Health Bar (Bottom Center) */
+            #health-container {
+                position: absolute;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 300px;
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                pointer-events: none;
+            }
 
-        .bar-frame {
-            width: 100%;
-            height: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            border-radius: 5px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
+            .bar-frame {
+                width: 100%;
+                height: 10px;
+                background: rgba(0, 0, 0, 0.8);
+                border-radius: 5px;
+                overflow: hidden;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
 
-        .bar-fill {
-            height: 100%;
-            transition: width 0.2s;
-        }
+            .bar-fill {
+                height: 100%;
+                transition: width 0.2s;
+            }
 
-        /* Joypad */
-        #joy-zone {
-            bottom: 50px;
-            left: 50px;
-            width: 140px;
-            height: 140px;
-            border-radius: 50%;
-            border: 2px solid rgba(255, 255, 0, 0.3);
-            /* Yellow tinge */
-            background: radial-gradient(circle, rgba(255, 255, 0, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
-            touch-action: none;
-            /* CRITICAL: Prevent browser scroll on joystick */
-        }
+            /* Joypad */
+            #joy-zone {
+                bottom: 50px;
+                left: 50px;
+                width: 140px;
+                height: 140px;
+                border-radius: 50%;
+                border: 2px solid rgba(255, 255, 0, 0.3);
+                /* Yellow tinge */
+                background: radial-gradient(circle, rgba(255, 255, 0, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+                touch-action: none;
+                /* CRITICAL: Prevent browser scroll on joystick */
+            }
 
-        #joy-knob {
-            width: 50px;
-            height: 50px;
-            background: white;
-            border-radius: 50%;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 10px white;
-            pointer-events: none;
-            /* Let touches pass to zone */
-        }
-    </style>
-</head>
+            #joy-knob {
+                width: 50px;
+                height: 50px;
+                background: white;
+                border-radius: 50%;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                box-shadow: 0 0 10px white;
+                pointer-events: none;
+                /* Let touches pass to zone */
+            }
+        </style>
+    </head>
 
 <body>
-
+    <div id="sniper-scope"></div>
     <div id="game-container"></div>
 
     <!-- Tap to Fullscreen (Mobile) -->
@@ -495,14 +530,24 @@
 
         <!-- WEAPON BUTTONS (Left Side) -->
         <!-- Weapon (Yellow) -->
-        <div id="btn-weapon" class="hud-el hud-btn-circle dashed-border"
+        <div id="btn-switch-weapon" class="hud-el hud-btn-circle dashed-border"
             style="bottom: 250px; left: 180px; width: 70px; height: 70px; border-color: yellow; color: yellow; font-size: 10px;">
             ARMA<br>(FUSIL)
         </div>
         <!-- Grenade (Blue/Cyan) -->
-        <div id="btn-grenade" class="hud-el hud-btn-circle"
+        <div id="btn-swap-nade" class="hud-el hud-btn-circle"
             style="bottom: 330px; left: 220px; width: 60px; height: 60px; border-color: cyan; color: cyan; font-size: 9px;">
             BOMBA<br>(EXPL)
+        </div>
+        <!-- Throw Grenade Button (Hidden/New) -> We need a dedicated throw button if main.js expects btn-nade separately or if it's the same? 
+             In main.js: btn-nade throws, btn-swap-nade swaps. 
+             Let's add btn-nade. index.html only had one button. Let's make this one swap, and add a throw button or assume the user wants this to be throw?
+             The backup had separate buttons. 
+             Let's add btn-nade as well.
+        -->
+        <div id="btn-nade" class="hud-el hud-btn-circle"
+            style="bottom: 330px; left: 140px; width: 60px; height: 60px; border-color: #ff4400; color: #ff4400; font-size: 20px;">
+            💣
         </div>
 
         <!-- ACTION BUTTONS (Right Side) -->
@@ -512,7 +557,7 @@
             TIRO<br>ADS
         </div>
         <!-- Shoot Hip (Smaller) -->
-        <div id="btn-hip" class="hud-el hud-btn-circle"
+        <div id="btn-fire-hip" class="hud-el hud-btn-circle"
             style="bottom: 140px; right: 160px; width: 70px; height: 70px; border-color: white; font-size: 11px;">
             TIRO<br>HIP
         </div>
