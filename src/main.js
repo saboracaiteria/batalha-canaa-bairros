@@ -1107,10 +1107,9 @@ function animate() {
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
 }
-}
 
 // Toggle pause menu
-function togglePause() {
+window.togglePause = function () {
     isPaused = !isPaused;
 
     const pauseMenu = document.getElementById('pause-menu');
