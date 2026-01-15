@@ -33,6 +33,8 @@ let initialBotCount = 10, houseData = [];
 let playerName = "SOLDADO";
 let mapRadiusLimit = 1050;
 let missionAccomplished = false;
+let initialBotsSpawned = false; // Logic Restore
+let matchStartTime = 0; // Logic Restore
 let solidObstacles = [], groundObstacles = [];
 let minimapCtx, minimapCanvas;
 let moveVec = new THREE.Vector2(), keyMoveVec = new THREE.Vector2(); // Separated inputs
@@ -1060,15 +1062,52 @@ function animate() {
         }
     }
 
-    updateBots(delta); // AI
+}
 
-    // Update minimap
-    updateMinimap();
+// --- GAME LOOP LOGIC RESTORED ---
+// 1. Armor Regen
+if (time - lastDamageTime > 6 && armor < 100) armor = Math.min(100, armor + 0.15 * fpsScale);
 
-    if (particleSystem) particleSystem.update(delta);
+// 2. Zone UI & Spawn Protection
+if (zoneActive && zoneRadius > 5) {
+    const isSpawnProtected = (Date.now() - matchStartTime < 10000);
+    document.getElementById('timer-display').innerText = isSpawnProtected ? `SPAWN PROTECTED` : `ZONA EM MOVIMENTO`;
+}
 
-    renderer.render(scene, camera);
-    requestAnimationFrame(animate);
+// 3. Win Condition & Bot Count Update
+let enemyBots = bots.filter(b => !b.userData.isAlly);
+let alliedBots = bots.filter(b => b.userData.isAlly);
+
+// Check if bots were spawned at least once
+if (isPlaying && bots.length > 0 && !initialBotsSpawned) initialBotsSpawned = true;
+
+// Update Counts
+const elEnemies = document.getElementById('count-alive');
+const elAllies = document.getElementById('count-allies');
+if (elEnemies) elEnemies.innerText = enemyBots.length;
+if (elAllies) elAllies.innerText = alliedBots.length;
+
+// Mission Accomplished Check
+if (!isMultiplayer && isPlaying && initialBotsSpawned && time > 3 && enemyBots.length === 0 && health > 0 && initialBotCount > 0) {
+    showMsg("MISSÃO CUMPRIDA", "Ameaças eliminadas. Operação bem-sucedida!");
+}
+
+// Game Over Check (Implicitly handled by showMsg called when dead, but backup adds a check here?)
+// Backup doesn't have explicit game over check in animate, it relies on health <= 0 somewhere.
+// Let's add explicit check if we die
+if (isPlaying && health <= 0) {
+    showMsg("ELIMINADO", "Você foi abatido em combate.");
+}
+
+updateBots(delta); // AI
+
+// Update minimap
+updateMinimap();
+
+if (particleSystem) particleSystem.update(delta);
+
+renderer.render(scene, camera);
+requestAnimationFrame(animate);
 }
 
 // Toggle pause menu
@@ -1559,7 +1598,9 @@ window.initGame = (mode) => {
     try {
         playerName = document.getElementById('player-name').value || "OPERADOR";
         missionAccomplished = false;
+        missionAccomplished = false;
         playerKills = 0;
+        matchStartTime = Date.now(); // Logic Restore
 
         // SAFELY GET CONFIGS (UI Reskin Compatibility)
         const elBotCount = document.getElementById('bot-count');
@@ -1720,4 +1761,37 @@ window.game = {
 window.spawnBullet = spawnBullet;
 
 alert('SISTEMA - SCRIPT CARREGADO E RODANDO! (v2.2)');
+
+// 🛡️ GAME LOGIC HELPERS
+window.showMsg = (title, body) => {
+    if (title === "MISSÃO CUMPRIDA" && missionAccomplished) return;
+    if (title === "MISSÃO CUMPRIDA") missionAccomplished = true;
+
+    isPlaying = false;
+    const panel = document.getElementById('game-msg');
+    const btns = document.getElementById('msg-btns');
+
+    if (document.getElementById('msg-title')) document.getElementById('msg-title').innerText = title;
+    if (document.getElementById('msg-body')) document.getElementById('msg-body').innerText = body;
+
+    btns.innerHTML = '';
+
+    // RESTART BUTTON
+    const restartBtn = document.createElement('button');
+    restartBtn.className = 'btn-main';
+    restartBtn.innerText = "RECOMEÇAR";
+    restartBtn.onclick = () => location.reload();
+    btns.appendChild(restartBtn);
+
+    panel.style.display = 'block';
+};
+
+window.spawnBotManual = (isAlly) => {
+    if (!isPlaying) return;
+    // Manual spawn wrapper
+    if (typeof spawnBot === 'function') spawnBot(isAlly); // Uses simplified spawnBot from main logic
+    // Or call spawnSingleBot if we expose it?
+    // spawnBot in main.js handles spawn logic but doesn't take 'manual' arg.
+    // It's fine, HUD buttons call generic spawnBot usually.
+};
 console.log('✅ Sistema de jogo completo (v2.2) carregado!');
