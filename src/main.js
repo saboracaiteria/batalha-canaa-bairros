@@ -920,9 +920,21 @@ function animate() {
                     effects.push({ m: p, l: 45, type: 'explosion' });
                 }
                 // Damage Logic
+                // Damage Logic
                 bots.forEach(b => {
-                    if (b.position.distanceTo(g.position) < 30) {
-                        if (!(g.userData.owner === 'player' && b.userData.isAlly)) b.userData.hp -= 200;
+                    const dist = b.position.distanceTo(g.position);
+                    if (dist < 60) { // Increased from 30 to 60 for better hit detection
+                        // Apply damage based on distance
+                        const dmg = 250 * (1 - dist / 60);
+                        if (g.userData.owner !== 'player' || !b.userData.isAlly) {
+                            b.userData.hp -= dmg;
+                            if (b.userData.hp <= 0 && b.userData.active && g.userData.owner === 'player') {
+                                playerKills++;
+                                document.getElementById('count-kills').innerText = playerKills;
+                                scene.remove(b);
+                                b.userData.active = false; // Mark as inactive so splice removes it next frame
+                            }
+                        }
                     }
                 });
                 if (g.position.distanceTo(playerGroup.position) < 25 && g.userData.owner !== 'player') {
@@ -1086,8 +1098,14 @@ function animate() {
     if (elAllies) elAllies.innerText = alliedBots.length;
 
     // Mission Accomplished Check
-    if (!isMultiplayer && isPlaying && initialBotsSpawned && time > 3 && enemyBots.length === 0 && health > 0 && initialBotCount > 0) {
-        showMsg("MISSÃO CUMPRIDA", "Ameaças eliminadas. Operação bem-sucedida!");
+    // Mission Accomplished Check
+    // Check if ALL enemies are dead (and we had some to begin with)
+    if (!isMultiplayer && isPlaying && initialBotsSpawned && time > 3 && health > 0) {
+        // Recalculate alive enemies just to be sure
+        const livingEnemies = bots.filter(b => !b.userData.isAlly && b.userData.hp > 0).length;
+        if (livingEnemies === 0 && initialBotCount > 0) {
+            showMsg("MISSÃO CUMPRIDA", "Ameaças eliminadas. Operação bem-sucedida!");
+        }
     }
 
     // Game Over Check (Implicitly handled by showMsg called when dead, but backup adds a check here?)
@@ -1502,8 +1520,15 @@ function updateBots(deltaTime) {
 
         // --- 6. VISUAIS (HP Bar) ---
         if (bot.userData.hBar) {
-            bot.userData.hBar.scale.x = Math.max(0, bot.userData.hp / (bot.userData.maxHP || 100));
+            const hpPct = bot.userData.hp / (bot.userData.maxHP || 100);
+            bot.userData.hBar.scale.x = Math.max(0, hpPct);
             bot.userData.hBar.visible = bot.userData.hp < (bot.userData.maxHP || 100);
+
+            // Color Transition: Green (>50%) -> Yellow -> Red (<25%)
+            if (hpPct > 0.5) bot.userData.hBar.material.color.setHex(0x00ff00);
+            else if (hpPct > 0.25) bot.userData.hBar.material.color.setHex(0xffff00);
+            else bot.userData.hBar.material.color.setHex(0xff0000);
+
             if (bot.userData.hBar.parent) bot.userData.hBar.parent.lookAt(camera.position);
         }
 
@@ -1525,7 +1550,7 @@ function createNPCHealthBar() {
     fg.position.x = -2.8; // Half of bg width approx
 
     group.add(bg, fg);
-    group.position.y = 19; // Lowered from 22 to be closer to head
+    group.position.y = 4.5; // Lowered from 19 to 4.5 (Just above head)
     return group;
 }
 
