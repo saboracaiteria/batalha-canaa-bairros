@@ -817,8 +817,8 @@ function animate() {
 
     // 🏃 MOVEMENT SPEED CALCULATION
     // Original values from backup: Run=1.19, Walk=0.8, ADS=40%
-    // UPDATED: Walk=0.45, Sprint=1.35 (3x)
-    const speed = (isRunning ? 1.35 : 0.45) * (isADS ? 0.4 : 1) * fpsScale;
+    // UPDATED: Walk=0.7 (was 0.45), Sprint=1.9 (was 1.35) - Faster Player
+    const speed = (isRunning ? 1.9 : 0.7) * (isADS ? 0.5 : 1) * fpsScale;
     // NOTE: Lowered values slightly for new scale, verified 1.19 was too fast for 0.1 step
 
 
@@ -1274,7 +1274,10 @@ function updateBullets(deltaTime) {
 
         // Hit detection
         for (let j = 0; j < bots.length; j++) {
-            if (bullet.position.distanceTo(bots[j].position) < 2) {
+            // Fix Hitbox: Check distance to CENTER of bot (height 2.0), not feet (0.0)
+            const botCenter = bots[j].position.clone().add(new THREE.Vector3(0, 2.0, 0));
+            // Increased radius slightly for easier hits (2 -> 3)
+            if (bullet.position.distanceTo(botCenter) < 3.0) {
                 // Hit!
                 bots[j].userData.hp -= currentWeapon === 'SNIPER' ? 75 : 25;
 
@@ -1538,19 +1541,20 @@ function updateBots(deltaTime) {
 // Helper for creating health bars
 function createNPCHealthBar() {
     const group = new THREE.Group();
-    // Background (Black) - Smaller
-    const bg = new THREE.Mesh(new THREE.PlaneGeometry(6, 0.8), new THREE.MeshBasicMaterial({ color: 0x000000 }));
-    // Foreground (Red) - Smaller
-    const fg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-    // Original Scale was 9.6, we want smaller. Let's say 5.6
-    fg.scale.set(5.6, 0.6, 1);
-    fg.position.z = 0.1;
-    // Pivot hack: Translate geometry so scaling affects right side only
-    fg.geometry.translate(0.5, 0, 0);
-    fg.position.x = -2.8; // Half of bg width approx
+    // Background (Black) - REMOVED per user request "nao quero a barra de vida preta"
+    // const bg = new THREE.Mesh(new THREE.PlaneGeometry(6, 0.8), new THREE.MeshBasicMaterial({ color: 0x000000 }));
 
-    group.add(bg, fg);
-    group.position.y = 4.5; // Lowered from 19 to 4.5 (Just above head)
+    // Foreground (Red) - Smaller Scale (Gigantic fix)
+    const fg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+    // Reduced scale: 3.0 wide, 0.4 high (was 5.6, 0.6)
+    fg.scale.set(3.0, 0.4, 1);
+    fg.position.z = 0.1;
+    // Pivot hack
+    fg.geometry.translate(0.5, 0, 0);
+    fg.position.x = -1.5; // Half of 3.0
+
+    group.add(fg); // bg removed
+    group.position.y = 4.0; // Slightly lower
     return group;
 }
 
