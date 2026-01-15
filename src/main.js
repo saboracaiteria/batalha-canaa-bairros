@@ -371,6 +371,13 @@ function setupThree() {
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
 
+    // 🖥️ RESIZE HANDLER (Fix for Fullscreen/Orientation issues)
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
     let pixelRatio = window.devicePixelRatio;
     if (pixelRatio > 1.5) pixelRatio = 1.5;
     if (cfg.graphics === 'low') pixelRatio = 1.0;
@@ -730,7 +737,12 @@ function animate() {
     // --- ANIMAÇÃO DO JOGADOR LOCAL ---
     const playerAnimSpeed = isRunning ? 15 : 10;
     const playerCycle = time * playerAnimSpeed;
-    CharacterFactory.animateLimbs(charModel, delta, isMoving, Math.sin(playerCycle), cameraPitch);
+
+    // Jump Detection
+    const isInAir = (playerGroup.position.y - floorY) > 0.5;
+
+    // Pass isInAir as 4th argument (replacing unused 'angle')
+    CharacterFactory.animateLimbs(charModel, delta, isMoving, isInAir, cameraPitch);
 
     if (isMoving) {
         const moveAngle = Math.atan2(-inputX, inputY);
@@ -1238,9 +1250,13 @@ window.initGame = (mode) => {
     }
 
     // 📱 MOBILE FULLSCREEN
-    if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(e => console.log('Fullscreen failed:', e));
-    }
+    try {
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(e => {
+                // Silent catch, user might have denied or not interacted yet
+            });
+        }
+    } catch (e) { }
 
     try {
         playerName = document.getElementById('player-name').value || "OPERADOR";

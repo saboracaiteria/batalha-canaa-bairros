@@ -197,7 +197,8 @@ export class CharacterFactory {
     /**
      * Animate character limbs based on movement (PORTED FROM BACKUP)
      */
-    static animateLimbs(character, deltaTime, isMoving, angle = 0, pitch = 0) {
+    // 4th arg is now 'isInAir' (bool), was 'angle'
+    static animateLimbs(character, deltaTime, isMoving, isInAir = false, pitch = 0) {
         if (!character || !character.userData.limbs) return;
 
         const limbs = character.userData.limbs;
@@ -206,8 +207,8 @@ export class CharacterFactory {
         // --- CORREÇÃO DE MIRA: CABEÇA E BRAÇO OLHANDO PARA O HORIZONTE/MIRA ---
         character.userData.head.rotation.x = pitch;
 
-        // DETECÇÃO DE PULO (NO AR)
-        const isInAir = character.position.y > 0.3; // Raised slightly to avoid jitter
+        // DETECÇÃO DE PULO (AGORA RECEBIDA DO MAIN)
+        // const isInAir = character.position.y > 0.3; // REMOVED
 
         if (isInAir) {
             // POSE DE PULO
