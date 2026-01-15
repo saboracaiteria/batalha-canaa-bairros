@@ -1389,5 +1389,5 @@ window.game = {
 // Expose for robustness
 window.spawnBullet = spawnBullet;
 
-alert('SISTEMA - SCRIPT CARREGADO E RODANDO! (v2.1)');
-console.log('✅ Sistema de jogo completo (v2.1) carregado!');
+alert('SISTEMA - SCRIPT CARREGADO E RODANDO! (v2.2)');
+console.log('✅ Sistema de jogo completo (v2.2) carregado!');
