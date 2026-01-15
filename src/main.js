@@ -1274,122 +1274,210 @@ function spawnBot(isAlly) {
 }
 
 // 🧠 ADVANCED AI (PORTED FROM BACKUP)
+// 🤖 ATUALIZAÇÃO DOS BOTS (I.A. ORIGINAL PORTADA)
 function updateBots(deltaTime) {
-    // 1. Filter Lists
-    let enemyBots = bots.filter(b => !b.userData.isAlly);
-    let realEnemies = []; // Multiplayer enemies would be here
+    const time = clock.getElapsedTime();
+    const fpsScale = deltaTime * 60;
+    const playerTargetCounts = {};
+    const enemyBots = bots.filter(b => !b.userData.isAlly);
+    const realEnemies = Object.values(otherPlayers).filter(p => !p.userData.isAlly && p.userData.hp > 0); // Simplified for now
 
-    // 2. Update Each Bot
-    bots.forEach((bot) => {
+    bots.forEach((bot, bi) => {
         if (!bot.userData.aiTick) bot.userData.aiTick = 0;
-        bot.userData.aiTick += 1;
 
-        // A. Movement Logic
-        const distToPlayer = bot.position.distanceTo(playerGroup.position);
-        const isAlly = bot.userData.isAlly;
+        // --- 1. STATUS & PERCEPÇÃO ---
+        const decisionSpeed = [20, 10, 5][cfg.diff - 1] || 10;
+        bot.userData.aiTick += 1 * fpsScale;
+        const bDistFromCenter = Math.hypot(bot.position.x, bot.position.z);
+        const bInGas = bDistFromCenter > zoneRadius;
 
-        // Decision: Move or Shoot?
-        // Allies follow player, Enemies flank
-        if (isAlly) {
-            if (distToPlayer > 15) {
-                const dir = new THREE.Vector3().subVectors(playerGroup.position, bot.position).normalize();
-                bot.position.add(dir.multiplyScalar(0.1));
-                bot.rotation.y = Math.atan2(dir.x, dir.z);
-                CharacterFactory.animateLimbs(bot, deltaTime, true);
+        // Gas Damage
+        if (bInGas && zoneActive) bot.userData.hp -= 0.8 * fpsScale;
+
+        // Line Of Sight (LOS)
+        ray.ray.origin.copy(bot.position).add(tempVec.set(0, 3, 0));
+        ray.ray.direction.copy(playerGroup.position).sub(bot.position).normalize();
+        ray.far = 400;
+        const losHits = ray.intersectObjects(solidObstacles);
+        const hasLOS = losHits.length === 0;
+
+        // Alert Logic
+        if (hasLOS) {
+            bot.userData.lastKnownPos.copy(playerGroup.position);
+            if (!bot.userData.isAlly) bot.userData.isAlerted = true;
+        }
+
+        // --- 2. DECISÃO (IA TÁTICA) ---
+        if (bot.userData.aiTick > decisionSpeed) {
+            bot.userData.aiTick = 0;
+            if (bInGas && bDistFromCenter > zoneRadius - 30) {
+                // Flee from gas
+                bot.userData.targetPos.set(0, bot.position.y, 0);
+                bot.userData.isAlerted = true;
+            } else if (hasLOS) {
+                // Flanking Logic
+                if (!bot.userData.flankAngle) bot.userData.flankAngle = 0;
+                bot.userData.flankAngle += 0.05;
+                const flankDist = bot.userData.isAlly ? 15 : 45;
+                tempVec.set(Math.cos(bot.userData.flankAngle), 0, Math.sin(bot.userData.flankAngle)).multiplyScalar(flankDist);
+
+                if (bot.userData.isAlly) {
+                    // Ally Logic: Follow Player or Engage Closest Enemy
+                    let closestEnemy = null; let minDist = 500;
+                    enemyBots.forEach(eb => { let d = bot.position.distanceTo(eb.position); if (d < minDist) { minDist = d; closestEnemy = eb; } });
+                    // Checking real enemies too if needed, simplified here
+                    if (closestEnemy) bot.userData.targetPos.copy(closestEnemy.position).add(tempVec);
+                    else bot.userData.targetPos.copy(playerGroup.position).add(tempVec.multiplyScalar(0.5));
+                } else {
+                    // Enemy Logic: Slot System
+                    const targetID = 'player';
+                    if (!playerTargetCounts[targetID]) playerTargetCounts[targetID] = 0;
+
+                    // Attack Slots Limit
+                    if (playerTargetCounts[targetID] < 2) {
+                        bot.userData.targetPos.copy(playerGroup.position).add(tempVec);
+                        playerTargetCounts[targetID]++;
+                    } else {
+                        // Patrol/Wait
+                        bot.userData.targetPos.copy(bot.userData.lastKnownPos || bot.position);
+                    }
+                }
+                bot.userData.suppressionTimer = bot.userData.isAlerted ? 1 : 0;
             } else {
-                CharacterFactory.animateLimbs(bot, deltaTime, false);
-            }
-        } else {
-            // Enemy Logic
-            if (distToPlayer > 25) {
-                // Far away: Approach
-                const dir = new THREE.Vector3().subVectors(playerGroup.position, bot.position).normalize();
-                bot.position.add(dir.multiplyScalar(0.08)); // Slower than ally
-                bot.rotation.y = Math.atan2(dir.x, dir.z);
-                CharacterFactory.animateLimbs(bot, deltaTime, true);
-            } else {
-                // Combat Range: Strafing (Simple Flank)
-                bot.rotation.y = Math.atan2(
-                    playerGroup.position.x - bot.position.x,
-                    playerGroup.position.z - bot.position.z
-                );
-
-                // Strafe logic
-                const time = Date.now() / 1000;
-                const strafe = Math.sin(time * 2) * 0.05;
-                const sideVec = new THREE.Vector3(Math.cos(bot.rotation.y), 0, -Math.sin(bot.rotation.y));
-                bot.position.add(sideVec.multiplyScalar(strafe));
-
-                CharacterFactory.animateLimbs(bot, deltaTime, true);
-
-                // Shoot
-                if (Math.random() < 0.02) {
-                    spawnBullet('bot', bot.position.clone().add(new THREE.Vector3(0, 1.5, 0)), playerGroup.position.clone().add(new THREE.Vector3(0, 1, 0)), bot.userData.id, 5);
+                // No LOS: Seek Cover or Last Known Pos
+                if (bot.userData.isAlerted && (!bot.userData.blindSpotTimer || bot.userData.blindSpotTimer <= 0)) {
+                    // Simple Cover Search (Shadow Point)
+                    // Simplified: Just go to last known pos for now to save rays
+                    bot.userData.targetPos.copy(bot.userData.lastKnownPos || bot.position);
+                } else {
+                    bot.userData.targetPos.copy(bot.userData.lastKnownPos || bot.position);
                 }
             }
         }
 
-        // Helper for creating bullets (Ported)
-        /* 
-           Note: The original backup had complex cover logic.
-           I've simplified it slightly here to ensure it runs without 
-           reference errors to 'obstacleBoxes' which might be different in this scope.
-           But this restores the 'Strafing' and 'Shoot' behavior.
-        */
-        // Gravity for Bots
-        // Simplified Floor Detection (assuming flat or map bounds)
-        // If we want them to walk on houses, we need raycasts.
-        // For performance, we can do a simple check:
-        // Raycast down from bot pos
-        const botRay = new THREE.Raycaster(
-            bot.position.clone().add(new THREE.Vector3(0, 1.5, 0)),
-            new THREE.Vector3(0, -1, 0)
-        );
-        // Optimize: Only check ground obstacles for bots
+        // --- 3. MOVIMENTO ---
+        let botSpeed = (bot.userData.isAlly ? 2.8 : 2.1) * fpsScale;
+        if (bot.userData.isAlerted || bInGas) botSpeed *= (cfg.diff === 3 ? 2.3 : 1.9);
+
+        // Rotation
+        const angleToTarget = Math.atan2(bot.userData.targetPos.x - bot.position.x, bot.userData.targetPos.z - bot.position.z);
+        bot.rotation.y = THREE.MathUtils.lerp(bot.rotation.y, angleToTarget, 0.15 * fpsScale);
+
+        const isBotMoving = bot.position.distanceTo(bot.userData.targetPos) > 3;
+
+        // Animation
+        const botCycle = time * 10;
+        CharacterFactory.animateLimbs(bot, deltaTime, isBotMoving, false, 0); // Assuming 0 pitch for now
+
+        if (isBotMoving) {
+            const distToPlayer = bot.position.distanceTo(playerGroup.position);
+            // Engage rule: Only move if ally OR enemy far away (>12m) OR not alerted
+            const shouldMove = bot.userData.isAlly || (!bot.userData.isAlly && distToPlayer > 12) || !bot.userData.isAlerted || bInGas;
+
+            if (shouldMove) {
+                const step = botSpeed * 0.15;
+                let nextX = bot.position.x + Math.sin(bot.rotation.y) * step;
+                let nextZ = bot.position.z + Math.cos(bot.rotation.y) * step;
+
+                // Strafing when alerted
+                if (bot.userData.isAlerted && !bInGas) {
+                    const sideVec = tempVec2.set(Math.cos(bot.rotation.y), 0, -Math.sin(bot.rotation.y));
+                    const freq = (cfg.diff === 3 ? 12 : 8);
+                    const strafe = Math.sin(time * freq) * 0.4 * step;
+                    nextX += sideVec.x * strafe;
+                    nextZ += sideVec.z * strafe;
+                }
+
+                // Simple Wall Collision for Bots
+                const botBox = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(nextX, bot.position.y + 2, nextZ), new THREE.Vector3(1.5, 4, 1.5));
+                let hitWall = false;
+                for (let i = 0; i < obstacleBoxes.length; i++) {
+                    // Optimization: Check distance first?
+                    if (botBox.intersectsBox(obstacleBoxes[i])) { hitWall = true; break; }
+                }
+
+                if (!hitWall) {
+                    bot.position.x = nextX;
+                    bot.position.z = nextZ;
+                }
+            }
+        }
+
+        // --- 4. GRAVIDADE (Already fixed) ---
+        // Reuse floor detection from previous fix, but adapted
+        const botRay = new THREE.Raycaster(bot.position.clone().add(new THREE.Vector3(0, 1.5, 0)), new THREE.Vector3(0, -1, 0));
         botRay.far = 10;
-        const bHits = botRay.intersectObjects(groundObstacles); // Reuse global groundObstacles
+        const bHits = botRay.intersectObjects(groundObstacles);
         const bFloorY = (bHits.length > 0) ? bHits[0].point.y : 0;
 
         if (!bot.userData.vY) bot.userData.vY = 0;
-        bot.position.y += bot.userData.vY * deltaTime * 60; // Approximate FPS scale
-
-        if (bot.position.y > bFloorY) {
-            bot.userData.vY -= 0.04; // Gravity
+        bot.position.y += bot.userData.vY * fpsScale;
+        if (bot.position.y > bFloorY + 0.1) {
+            bot.userData.vY -= 0.025 * fpsScale;
         } else {
             bot.position.y = bFloorY;
             bot.userData.vY = 0;
         }
 
-        // Update Health Bar
+        // --- 5. TIRO ---
+        const baseShotCooldown = [1.8, 0.8, 0.4][cfg.diff - 1] || 1.0;
+        const shootCooldown = bot.userData.isAlerted ? baseShotCooldown : 2.5;
+
+        // Init lastShot if undefined
+        if (!bot.userData.lastShot) bot.userData.lastShot = 0;
+
+        if (time - bot.userData.lastShot > shootCooldown && (hasLOS || (bot.userData.suppressionTimer && bot.userData.suppressionTimer > 0))) {
+            const dmg = bot.userData.isAlly ? 35 : (5 * cfg.diff + 1);
+            let validTargetPoint = null;
+
+            if (bot.userData.isAlly) {
+                // Ally targets enemies
+                let closestEnemy = null; let minDist = 300;
+                enemyBots.forEach(eb => { let d = bot.position.distanceTo(eb.position); if (d < minDist) { minDist = d; closestEnemy = eb; } });
+                if (closestEnemy) validTargetPoint = closestEnemy.position.clone();
+            } else {
+                // Enemy targets Player
+                validTargetPoint = hasLOS ? playerGroup.position.clone() : bot.userData.lastKnownPos.clone();
+            }
+
+            if (validTargetPoint && bot.position.distanceTo(validTargetPoint) < 250) {
+                // Add randomness to aim
+                const spread = hasLOS ? 0.03 : 0.1;
+                // spawnBullet(owner, start, end, id, damage, spread)
+                // Note: Our spawnBullet signature might be different. Let's check: 
+                // spawnBullet(owner, position, targetPos, shooterId, damage) from previous view
+                spawnBullet('bot', bot.position.clone().add(new THREE.Vector3(0, 1.5, 0)), validTargetPoint, bot.userData.id, dmg);
+
+                bot.userData.lastShot = time;
+                if (!hasLOS && bot.userData.suppressionTimer) bot.userData.suppressionTimer -= 0.1;
+            }
+        }
+
+        // --- 6. VISUAIS (HP Bar) ---
         if (bot.userData.hBar) {
-            // Scale red bar based on HP
-            bot.userData.hBar.scale.x = Math.max(0, bot.userData.hp / bot.userData.maxHP);
-            bot.userData.hBar.visible = bot.userData.hp < bot.userData.maxHP;
-            // Billboard effect (always face camera)
-            // Use parent group for orientation, but wait, hBar is the MESH inside the group.
-            // Checks spawnBot... bot.add(hb). hb is GROUP. bot.userData.hBar is MESH.
-            // So we need bot.userData.hBar.parent.lookAt...
+            bot.userData.hBar.scale.x = Math.max(0, bot.userData.hp / (bot.userData.maxHP || 100));
+            bot.userData.hBar.visible = bot.userData.hp < (bot.userData.maxHP || 100);
             if (bot.userData.hBar.parent) bot.userData.hBar.parent.lookAt(camera.position);
         }
 
     });
 }
 
-function createNPCHealthBar() {
-    const group = new THREE.Group();
-    // Background (Black)
-    const bg = new THREE.Mesh(new THREE.PlaneGeometry(10, 1.5), new THREE.MeshBasicMaterial({ color: 0x000000 }));
-    // Foreground (Red)
-    const fg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-    fg.scale.set(9.6, 1.1, 1);
-    fg.position.z = 0.1;
-    // Pivot hack: Translate geometry so scaling affects right side only
-    fg.geometry.translate(0.5, 0, 0);
-    fg.position.x = -4.8;
+const group = new THREE.Group();
+// Background (Black) - Smaller
+const bg = new THREE.Mesh(new THREE.PlaneGeometry(6, 0.8), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+// Foreground (Red) - Smaller
+const fg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+// Original Scale was 9.6, we want smaller. Let's say 5.6
+fg.scale.set(5.6, 0.6, 1);
+fg.position.z = 0.1;
+// Pivot hack: Translate geometry so scaling affects right side only
+fg.geometry.translate(0.5, 0, 0);
+fg.position.x = -2.8; // Half of bg width approx
 
-    group.add(bg, fg);
-    group.position.y = 22; // Height above bot info
-    return group;
+group.add(bg, fg);
+group.position.y = 19; // Lowered from 22 to be closer to head
+return group;
 }
 
 
