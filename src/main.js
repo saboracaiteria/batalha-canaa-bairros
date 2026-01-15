@@ -1463,21 +1463,23 @@ function updateBots(deltaTime) {
     });
 }
 
-const group = new THREE.Group();
-// Background (Black) - Smaller
-const bg = new THREE.Mesh(new THREE.PlaneGeometry(6, 0.8), new THREE.MeshBasicMaterial({ color: 0x000000 }));
-// Foreground (Red) - Smaller
-const fg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-// Original Scale was 9.6, we want smaller. Let's say 5.6
-fg.scale.set(5.6, 0.6, 1);
-fg.position.z = 0.1;
-// Pivot hack: Translate geometry so scaling affects right side only
-fg.geometry.translate(0.5, 0, 0);
-fg.position.x = -2.8; // Half of bg width approx
+// Helper for creating health bars
+function createNPCHealthBar() {
+    const group = new THREE.Group();
+    // Background (Black) - Smaller
+    const bg = new THREE.Mesh(new THREE.PlaneGeometry(6, 0.8), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+    // Foreground (Red) - Smaller
+    const fg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+    // Original Scale was 9.6, we want smaller. Let's say 5.6
+    fg.scale.set(5.6, 0.6, 1);
+    fg.position.z = 0.1;
+    // Pivot hack: Translate geometry so scaling affects right side only
+    fg.geometry.translate(0.5, 0, 0);
+    fg.position.x = -2.8; // Half of bg width approx
 
-group.add(bg, fg);
-group.position.y = 19; // Lowered from 22 to be closer to head
-return group;
+    group.add(bg, fg);
+    group.position.y = 19; // Lowered from 22 to be closer to head
+    return group;
 }
 
 
