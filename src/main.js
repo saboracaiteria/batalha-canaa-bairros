@@ -1612,6 +1612,9 @@ window.initGame = (mode) => {
     // VISUAL FEEDBACK FOR CLICK/TOUCH
     alert("INICIANDO JOGO... (v2.0)");
 
+    // Load HUD Layout if saved
+    if (window.loadHudLayout) window.loadHudLayout();
+
     // 🔊 RESUME AUDIO CONTEXT (Mobile Requirement)
     if (audioCtx.state === 'suspended') {
         audioCtx.resume().then(() => {

@@ -88,6 +88,10 @@ export function openHudEditor() {
         window._wasStartScreen = true;
     }
 
+    // Hide Pause Menu explicitly to prevent overlap
+    const pm = document.getElementById('pause-menu');
+    if (pm) pm.style.display = 'none';
+
     // Create editor overlay (Save button)
     const editor = document.createElement('div');
     editor.id = 'hud-editor';
