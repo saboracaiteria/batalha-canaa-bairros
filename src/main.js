@@ -1667,14 +1667,23 @@ window.initGame = (mode) => {
         loadHudLayout(); // Load saved positions
 
         // 🌐 INIT MULTIPLAYER
+        // 🌐 INIT MULTIPLAYER
         const network = new Network({
-            scene, player: playerGroup, health, playerKills, bots,
+            scene,
+            player: playerGroup,
+            bots,
             setupBotsPeriphery: setupBotsPeriphery,
+            spawnRemoteGrenade: window.spawnRemoteGrenade,
             syncBot: window.syncBot,
             clearBots: window.clearBots,
             cleanupBots: window.cleanupBots,
-            spawnRemoteGrenade: window.spawnRemoteGrenade, // Added
-            cameraYaw: cameraYaw
+
+            // DYNAMIC ACCESSORS (Fixes "Frozen Value" Bug)
+            get isPlaying() { return isPlaying; },
+            get health() { return health; },
+            get playerKills() { return playerKills; },
+            get cameraYaw() { return cameraYaw; },
+            toggleBots: (val) => { if (val) setupBotsPeriphery(); }
         });
         // NOTE: Above object is a mock game reference. Ideally we pass 'this' but strict mode prevents it. 
         // We will assign a global 'gameInstance' reference for cleaner access later.
