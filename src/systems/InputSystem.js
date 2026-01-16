@@ -150,9 +150,17 @@ export class InputSystem {
             return;
         }
 
-        // Helper for UI checks
+        // Helper for UI checks - UPDATED to allow all UI interactions
         const isUIElement = (element) => {
-            return element.closest('.ui-button') || element.closest('#hud-container');
+            return element.closest('.ui-button') ||
+                element.closest('#hud-container') ||
+                element.closest('.icon-btn') ||
+                element.closest('.pause-btn') ||
+                element.closest('.btn-main') ||
+                element.closest('.pause-option') || // For sliders
+                element.tagName === 'BUTTON' ||
+                element.tagName === 'INPUT' ||
+                element.tagName === 'SELECT';
         };
 
         document.addEventListener('touchstart', (e) => {

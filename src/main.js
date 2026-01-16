@@ -843,11 +843,11 @@ function animate() {
     let isMoving = false;
 
     if (inputSystem) {
-        // INVERTED LOGIC AS REQUESTED (Swapped +/-)
-        if (inputSystem.keys.moveRight) inputX -= 1; // Was +, now -
-        if (inputSystem.keys.moveLeft) inputX += 1;  // Was -, now +
-        if (inputSystem.keys.moveForward) inputY += 1; // Was -, now +
-        if (inputSystem.keys.moveBackward) inputY -= 1; // Was +, now -
+        // CORRECTED LOGIC (Right = +X, Forward = -Z relative to camera)
+        if (inputSystem.keys.moveRight) inputX += 1;
+        if (inputSystem.keys.moveLeft) inputX -= 1;
+        if (inputSystem.keys.moveForward) inputY -= 1; // Forward is negative Z
+        if (inputSystem.keys.moveBackward) inputY += 1;
 
         isMoving = (inputX !== 0 || inputY !== 0);
     }
