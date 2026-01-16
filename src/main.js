@@ -672,144 +672,46 @@ function setupGameInput() {
     // ============================================
     // PC CONTROLS (Keyboard + Mouse)
     // ============================================
-
+    // 🎮 LEGACY MOUSE HANDLING DISABLED - Managed by InputSystem.js
+    /*
     const keys = {};
+    window.addEventListener('keydown', e => { ... });
+    window.addEventListener('keyup', e => { ... });
+    */
 
-    // Keyboard events
+    // KEEPING ONLY CRITICAL ACTIONS NOT IN INPUT SYSTEM YET (Pause, Grenade, ADS Toggle)
     window.addEventListener('keydown', e => {
         if (isPaused) return;
-        keys[e.key.toLowerCase()] = true;
-
-        // Jump (Space)
-        if (e.code === 'Space' && jumps < 2) {
-            vY = 0.8;
-            jumps++;
-            e.preventDefault();
-        }
-
-        // Running (Shift)
-        if (e.key === 'Shift') {
-            isRunning = true;
-        }
-
-        // ADS (Right Click or E)
+        // Pause (ESC)
+        if (e.code === 'Escape') { togglePause(); e.preventDefault(); }
+        // Grenade (G)
+        if (e.key.toLowerCase() === 'g') { throwGrenade(); }
+        // ADS Toggle (E)
         if (e.key.toLowerCase() === 'e') {
             isADS = !isADS;
             camera.fov = isADS ? (currentWeapon === 'SNIPER' ? 12 : 30) : cfg.fov;
             camera.updateProjectionMatrix();
         }
-
-        // Toggle Camera (C for Third Person)
-        if (e.key.toLowerCase() === 'c') {
-            isFPS = !isFPS;
-        }
-
-        // Throw Grenade (G)
-        if (e.key.toLowerCase() === 'g') {
-            throwGrenade();
-        }
-
-        // Pause Menu (ESC)
-        if (e.code === 'Escape') {
-            togglePause();
-            e.preventDefault();
-        }
+        // Camera Toggle (C) - InputSystem uses C for Crouch/Slide. Let's map 'V' for Camera? Or just keep conflict?
+        // Let's keep 'V' for Camera
+        if (e.key.toLowerCase() === 'v') { isFPS = !isFPS; }
     });
 
-    window.addEventListener('keyup', e => {
-        keys[e.key.toLowerCase()] = false;
-
-        if (e.key === 'Shift') {
-            isRunning = false;
-        }
-    });
-
-    // Update movement from keyboard
-    function updateKeyboardMovement() {
-        if (isPaused) return;
-
-        let dx = 0;
-        let dy = 0;
-
-        if (keys['w'] || keys['arrowup']) dy = 1;
-        if (keys['s'] || keys['arrowdown']) dy = -1;
-        if (keys['a'] || keys['arrowleft']) dx = 1;
-        if (keys['d'] || keys['arrowright']) dx = -1;
-
-        // Normalize diagonal movement
-        const length = Math.hypot(dx, dy);
-        if (length > 0) {
-            dx /= length;
-            dy /= length;
-        }
-
-        keyMoveVec.set(dx, dy); // Use separate vector
-    }
-
+    // POINTER LOCK & MOUSE LOOK DISABLED (Handled by InputSystem)
+    /*
     // Mouse controls
     let isPointerLocked = false;
+    renderer.domElement.addEventListener('click', () => { ... });
+    document.addEventListener('pointerlockchange', () => { ... });
+    window.addEventListener('mousemove', e => { ... });
+    window.addEventListener('mousedown', e => { ... });
+    window.addEventListener('mouseup', e => { ... });
+    */
 
-    // Click to lock pointer (for mouse look)
-    renderer.domElement.addEventListener('click', () => {
-        if (!isPlaying || isPaused) return;
-        renderer.domElement.requestPointerLock();
-    });
-
-    // Pointer lock change
-    document.addEventListener('pointerlockchange', () => {
-        isPointerLocked = document.pointerLockElement === renderer.domElement;
-    });
-
-    // Mouse movement (look around)
-    window.addEventListener('mousemove', e => {
-        if (!isPointerLocked || isPaused) return;
-
-        const sensitivity = cfg.sens * 2; // Reduced for better control
-        cameraYaw -= e.movementX * sensitivity;
-        cameraPitch = Math.max(-1.5, Math.min(1.5, cameraPitch - e.movementY * sensitivity));
-    });
-
-    // Mouse buttons
-    window.addEventListener('mousedown', e => {
-        if (!isPointerLocked || isPaused) return;
-
-        // Left click - shoot
-        if (e.button === 0) {
-            isShooting = true;
-        }
-
-        // Right click - ADS
-        if (e.button === 2) {
-            isADS = true;
-            camera.fov = currentWeapon === 'SNIPER' ? 12 : 30;
-            camera.updateProjectionMatrix();
-            e.preventDefault();
-        }
-    });
-
-    window.addEventListener('mouseup', e => {
-        // Left click - stop shooting
-        if (e.button === 0) {
-            isShooting = false;
-        }
-
-        // Right click - stop ADS
-        if (e.button === 2) {
-            isADS = false;
-            camera.fov = cfg.fov;
-            camera.updateProjectionMatrix();
-        }
-    });
-
-    // Prevent context menu on right click
-    renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
-
-    // Update keyboard movement in game loop
-    const originalAnimate = animate;
-    animate = function () {
-        updateKeyboardMovement();
-        originalAnimate();
-    };
+    // Update movement from keyboard - DISABLED
+    function updateKeyboardMovement() {
+        // Handled by InputSystem
+    }
 }
 
 // Minimap

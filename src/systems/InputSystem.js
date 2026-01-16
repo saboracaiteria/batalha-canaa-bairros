@@ -59,10 +59,13 @@ export class InputSystem {
     }
 
     checkMobile() {
-        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        // Force mobile if UI elements exist (for testing on PC or missed agents)
+        const hasJoystick = document.getElementById('joy-zone') !== null;
+        this.isMobile = hasJoystick || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
         if (this.isMobile) {
-            console.log('📱 Mobile device detected');
-            // Ensure mobile controls UI exists
+            console.log('📱 Mobile mode activated (Device or UI detected)');
+            // Ensure mobile controls UI exists (legacy check, can probably remove or keep)
             const mobileControls = document.getElementById('mobileControls');
             if (mobileControls) mobileControls.style.display = 'flex';
         }
