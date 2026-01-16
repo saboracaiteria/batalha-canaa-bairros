@@ -1332,7 +1332,8 @@ function spawnBot(isAlly) {
     const x = Math.cos(angle) * dist;
     const z = Math.sin(angle) * dist;
 
-    const bot = CharacterFactory.createHumanoid(isAlly ? 0x3b82f6 : 0xff0000, 'bot' + Math.random());
+    const botId = 'bot_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const bot = CharacterFactory.createHumanoid(isAlly ? 0x3b82f6 : 0xff0000, botId);
     bot.position.set(x, 0, z);
     bot.userData.isAlly = isAlly;
     bot.userData.hp = 100;
