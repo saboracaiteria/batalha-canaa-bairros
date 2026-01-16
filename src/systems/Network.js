@@ -1,4 +1,5 @@
 
+import * as THREE from 'three';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getDatabase, ref, set, update, onValue, remove, serverTimestamp, push, onChildAdded, onDisconnect } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
@@ -44,32 +45,22 @@ export class Network {
 
     async connect() {
         console.log('🌐 Connecting to Firebase...');
+
+        // 🚀 OPTIMIZATION: Check if already connected
+        if (this.auth.currentUser) {
+            console.log('⚡ Fast Reconnect:', this.auth.currentUser.uid);
+            this.handleUser(this.auth.currentUser);
+            return Promise.resolve(true);
+        }
+
         alert('TENTANDO CONECTAR...'); // DEBUG MOBILE
         try {
             await signInAnonymously(this.auth);
             return new Promise((resolve) => {
-                onAuthStateChanged(this.auth, (user) => {
+                const unsubscribe = onAuthStateChanged(this.auth, (user) => {
                     if (user) {
-                        this.currentUser = user;
-                        console.log('✅ Connected as:', user.uid);
-                        alert('CONECTADO! UID: ' + user.uid.substr(0, 4)); // DEBUG MOBILE
-                        this.setupRefs();
-                        this.enableDebugMonitor(); // START DEBUG
-                        // Presence
-                        const presenceRef = ref(this.db, `artifacts/${APP_ID}/public/data/${this.roomName}/${user.uid}`);
-                        // Default status
-                        update(presenceRef, {
-                            name: document.getElementById('player-name').value || "OPERADOR",
-                            status: 'lobby',
-                            lastUpdate: serverTimestamp()
-                        });
-                        onDisconnect(presenceRef).remove();
-
-                        // 🟢 KEEP-ALIVE LOOP (Auto Cleanup Prevention)
-                        setInterval(() => {
-                            if (this.auth.currentUser) update(presenceRef, { lastUpdate: serverTimestamp() }).catch(() => { });
-                        }, 5000); // Pulse every 5s
-
+                        this.handleUser(user);
+                        unsubscribe(); // Cleanup listener once connected
                         resolve(true);
                     }
                 });
@@ -77,10 +68,31 @@ export class Network {
         } catch (e) {
             console.error('❌ Firebase Connection Error:', e);
             alert('Erro de Conexão: ' + e.message);
-            const statusEl = document.getElementById('status-multi-msg');
-            if (statusEl) { statusEl.innerText = "ERRO: " + e.message; statusEl.style.color = 'red'; }
             return false;
         }
+    }
+
+    handleUser(user) {
+        this.currentUser = user;
+        console.log('✅ Connected as:', user.uid);
+        // alert('CONECTADO! UID: ' + user.uid.substr(0, 4)); // Remove annoying alert on optimization
+        this.setupRefs();
+        this.enableDebugMonitor();
+
+        // Presence
+        const presenceRef = ref(this.db, `artifacts/${APP_ID}/public/data/${this.roomName}/${user.uid}`);
+        update(presenceRef, {
+            name: (document.getElementById('player-name') ? document.getElementById('player-name').value : "OPERADOR"),
+            status: 'lobby',
+            lastUpdate: serverTimestamp()
+        });
+        onDisconnect(presenceRef).remove();
+
+        // 🟢 KEEP-ALIVE LOOP
+        if (this.keepAlive) clearInterval(this.keepAlive);
+        this.keepAlive = setInterval(() => {
+            if (this.auth.currentUser) update(presenceRef, { lastUpdate: serverTimestamp() }).catch(() => { });
+        }, 5000);
     }
 
     // New method to show agents in Lobby
@@ -135,6 +147,7 @@ export class Network {
         this.refs.players = ref(this.db, `${root}/${this.roomName}`);
         this.refs.nades = ref(this.db, `${root}/${this.roomName}_nades`);
         this.refs.bots = ref(this.db, `${root}/${this.roomName}_bots`);
+        this.refs.commands = ref(this.db, `${root}/${this.roomName}_commands`);
         this.refs.registry = ref(this.db, `${root}/room_registry/canaa`);
 
         // Debug
@@ -167,6 +180,7 @@ export class Network {
         this.listenToPlayers();
         this.listenToBots();
         this.listenToGrenades();
+        this.listenToCommands(); // New
         this.listenToRegistry();
     }
 
@@ -175,16 +189,38 @@ export class Network {
             const data = snapshot.val();
             if (!data) return;
 
+            const now = Date.now();
+            const TIMEOUT = 60000; // 60 seconds
+
+            // Filter out stale players
+            const activeKeys = Object.keys(data).filter(key => {
+                const p = data[key];
+                // Using a buffer or assuming sync. If lastUpdate is missing, assume stale?
+                if (!p.lastUpdate) return false;
+                return (now - p.lastUpdate < TIMEOUT);
+            });
+
             // Sort by join time (older = leader)
-            const sortedKeys = Object.keys(data).sort((a, b) => {
+            activeKeys.sort((a, b) => {
                 const ta = data[a].joinedAt || 0;
                 const tb = data[b].joinedAt || 0;
                 return ta - tb;
             });
 
-            // Leader Logic
+            // Leader Logic (First active player)
             const wasLeader = this.isLeader;
-            this.isLeader = (sortedKeys[0] === this.currentUser.uid);
+            // If I am in the active list and I am the first one
+            this.isLeader = (activeKeys.length > 0 && activeKeys[0] === this.currentUser.uid);
+
+            if (this.isLeader) {
+                // CLEANUP: Remove stale players from DB
+                Object.keys(data).forEach(key => {
+                    if (!activeKeys.includes(key)) {
+                        console.log(`🧹 Cleaning up stale player: ${key}`);
+                        remove(ref(this.db, `artifacts/${APP_ID}/public/data/${this.roomName}/${key}`)).catch(() => { });
+                    }
+                });
+            }
 
             if (this.isLeader && !wasLeader) {
                 console.log("👑 YOU ARE NOW THE LEADER");
@@ -217,8 +253,8 @@ export class Network {
             const onlineCountEl = document.getElementById('online-count-hud');
             if (onlineCountEl) {
                 onlineCountEl.classList.remove('hidden');
-                const leaderName = data[sortedKeys[0]]?.name || "---";
-                onlineCountEl.innerHTML = `ONLINE: ${Object.keys(data).length}<br><span style="color:var(--ui-primary)">LÍDER: ${leaderName}</span>`;
+                const leaderName = (activeKeys.length > 0 && data[activeKeys[0]]) ? data[activeKeys[0]].name : "---";
+                onlineCountEl.innerHTML = `ONLINE: ${activeKeys.length}<br><span style="color:var(--ui-primary)">LÍDER: ${leaderName}</span>`;
             }
 
             this.updateLeaderboard(data);
@@ -398,6 +434,31 @@ export class Network {
                 }
             }
         }
+    }
+
+    listenToCommands() {
+        if (!this.isLeader) return;
+        onChildAdded(this.refs.commands, (snapshot) => {
+            const cmd = snapshot.val();
+            if (cmd && cmd.type === 'spawnBot') {
+                console.log("👑 LEADER: Executing Spawn Request");
+                // Use main.js global spawn function directly
+                if (window.spawnBotManual) window.spawnBotManual(cmd.isAlly);
+                remove(snapshot.ref).catch(() => { }); // Consume command
+            }
+        });
+    }
+
+    requestSpawnBot(isAlly) {
+        if (!this.currentUser) return;
+        console.log("📡 Sending Spawn Request...");
+        const newCmd = push(this.refs.commands);
+        set(newCmd, {
+            type: 'spawnBot',
+            isAlly: isAlly,
+            requester: this.currentUser.uid,
+            time: serverTimestamp()
+        }).catch(console.error);
     }
 
     updateLeaderboard(data) {

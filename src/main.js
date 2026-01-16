@@ -9,8 +9,11 @@ import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
 
 /**
  * GameLegacy - Integra TODA a lógica original do jogo
- * Este arquivo conecta a nova arquitetura modular com o código original
- */
+    * Este arquivo conecta a nova arquitetura modular com o código original
+        */
+
+// 🌍 EXPOSE FACTORY FOR NETWORK
+window.createHumanoid = (color, id) => CharacterFactory.createHumanoid(color, id);
 
 console.log(`
 ╔═══════════════════════════════════════════════════╗
@@ -1318,6 +1321,12 @@ function updateBullets(deltaTime) {
 }
 
 function spawnBot(isAlly) {
+    // 🌐 CLIENT SYNC: Helper to request spawn from Leader
+    if (window.gameNetwork && window.gameNetwork.isMultiplayer && !window.gameNetwork.isLeader) {
+        window.gameNetwork.requestSpawnBot(isAlly);
+        return;
+    }
+
     const angle = Math.random() * Math.PI * 2;
     const dist = 100 + Math.random() * 200;
     const x = Math.cos(angle) * dist;
@@ -1340,9 +1349,10 @@ function spawnBot(isAlly) {
     // Re-implementation below uses fg.geometry.translate so we can scale the MESH directly.
     bot.userData.hBar = hb.children[1]; // The Red Foreground
 
-    scene.add(bot);
     bots.push(bot);
 }
+window.spawnBot = spawnBot;
+window.spawnBotManual = spawnBot;
 
 function setupBotsPeriphery() {
     console.log("🤖 Inicializando Bots...");
@@ -1600,6 +1610,7 @@ window.syncBot = (id, data) => {
         bot.userData.maxHP = 100; // Simplified
         scene.add(bot);
         bots.push(bot);
+        console.log(`🤖 SYNC-BOT: Created ${id} at ${data.x},${data.y},${data.z}`);
     }
     bot.position.set(data.x, data.y, data.z);
     bot.rotation.y = data.ry;
