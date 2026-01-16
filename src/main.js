@@ -602,54 +602,29 @@ function updateCollisionBoxes() {
 }
 
 function setupGameInput() {
+    // 🎮 LEGACY TOUCH HANDLERS DISABLED - USING InputSystem.js
+    /*
     window.addEventListener('touchstart', e => {
         if (window.isEditingHud || isPaused) return;
         for (let t of e.changedTouches) {
             // DYNAMIC JOYSTICK LOGIC
-            // Only trigger if on left half and NOT on a hud element
             const isLeftHalf = t.clientX < window.innerWidth / 2;
             const isHudButton = t.target.classList.contains('hud-el');
 
             if (isLeftHalf && !isHudButton && moveTouchId === null) {
-                moveTouchId = t.identifier;
-
-                // Position Joystick at touch point
-                const zone = document.getElementById('joy-zone');
-                const knob = document.getElementById('joy-knob');
-
-                zone.style.display = 'block';
-                zone.style.left = (t.clientX - 70) + 'px'; // Center 140px zone
-                zone.style.top = (t.clientY - 70) + 'px';
-
-                knob.style.transform = 'translate(-50%, -50%)';
-                moveVec.set(0, 0);
+               // ... Legacy Joystick ...
             }
             // Fire/Look Logic
             else if (t.target.closest('#btn-fire-ads')) { fireTouchId = t.identifier; fireLastX = t.clientX; fireLastY = t.clientY; isShooting = true; isADS = true; camera.fov = currentWeapon === 'SNIPER' ? 12 : 30; camera.updateProjectionMatrix(); if (currentWeapon === 'SNIPER') document.getElementById('sniper-scope').style.display = 'block'; }
             else if (t.target.closest('#btn-fire-hip')) { fireTouchId = t.identifier; fireLastX = t.clientX; fireLastY = t.clientY; isShooting = true; isADS = false; camera.fov = cfg.fov; camera.updateProjectionMatrix(); }
             else if (!t.target.classList.contains('hud-el')) {
-                // INTERAÇÃO DE TOQUE (TIRO OU PORTA)
-                ray.setFromCamera({ x: (t.clientX / window.innerWidth) * 2 - 1, y: -(t.clientY / window.innerHeight) * 2 + 1 }, camera);
-                const doorHits = ray.intersectObjects(obstacles);
-                let hitDoor = false;
-                for (let hit of doorHits) {
-                    if (hit.object.userData.isDoor && hit.distance < 20) {
-                        hit.object.userData.isOpen = !hit.object.userData.isOpen;
-                        // Animação simples (Teleporte para cima)
-                        if (hit.object.userData.isOpen) hit.object.position.y += 3;
-                        else hit.object.position.y -= 3;
-                        playSfx('hit'); // Som de feedback
-                        hitDoor = true;
-                        break;
-                    }
-                }
-                if (!hitDoor) {
-                    lookTouchId = t.identifier; lastX = t.clientX; lastY = t.clientY;
-                }
+                // ... Legacy Look/Door ...
             }
         }
     }, { passive: false });
+    */
 
+    // 🎮 HUD BUTTONS (Keep these!)
     document.querySelectorAll('.hud-el').forEach(el => {
         el.addEventListener('pointerdown', e => {
             if (window.isEditingHud) return;
@@ -662,50 +637,36 @@ function setupGameInput() {
             if (el.id === 'btn-eye') { isFPS = !isFPS; }
             if (el.id === 'btn-swap-nade') { grenadeType = (grenadeType === 'explosive' ? 'smoke' : 'explosive'); el.innerHTML = `BOMBA<br>(${grenadeType === 'explosive' ? 'EXPL' : 'FUMA'})`; }
             if (el.id === 'btn-switch-weapon') { currentWeapon = currentWeapon === 'AR' ? 'SNIPER' : 'AR'; el.innerHTML = `ARMA<br>(${currentWeapon === 'AR' ? 'FUSIL' : 'SNIPER'})`; }
+
+            // 🔫 FIRE BUTTONS (Manual Bind since window listener is disabled)
+            if (el.id === 'btn-fire-ads') { isShooting = true; isADS = true; camera.fov = currentWeapon === 'SNIPER' ? 12 : 30; camera.updateProjectionMatrix(); if (currentWeapon === 'SNIPER') document.getElementById('sniper-scope').style.display = 'block'; }
+            if (el.id === 'btn-fire-hip') { isShooting = true; isADS = false; camera.fov = cfg.fov; camera.updateProjectionMatrix(); }
         });
-        el.addEventListener('pointerup', e => { if (window.isEditingHud) return; if (el.id === 'btn-ads') { isADS = false; camera.fov = cfg.fov; camera.updateProjectionMatrix(); document.getElementById('sniper-scope').style.display = 'none'; } });
+        el.addEventListener('pointerup', e => {
+            if (window.isEditingHud) return;
+            if (el.id === 'btn-ads') { isADS = false; camera.fov = cfg.fov; camera.updateProjectionMatrix(); document.getElementById('sniper-scope').style.display = 'none'; }
+
+            // 🔫 STOP FIRE
+            if (el.id === 'btn-fire-ads' || el.id === 'btn-fire-hip') {
+                isShooting = false;
+                if (el.id === 'btn-fire-ads') { isADS = false; camera.fov = cfg.fov; camera.updateProjectionMatrix(); document.getElementById('sniper-scope').style.display = 'none'; }
+            }
+        });
+        // Handle pointercancel/leave
+        el.addEventListener('pointercancel', e => {
+            if (el.id === 'btn-fire-ads' || el.id === 'btn-fire-hip') isShooting = false;
+        });
     });
 
+    /*
     window.addEventListener('touchmove', e => {
-        if (window.isEditingHud || isPaused) return;
-        for (let t of e.changedTouches) {
-            if (t.identifier === moveTouchId) {
-                const zone = document.getElementById('joy-zone');
-                // Calculate from center of the DYNAMIC zone position
-                const rect = zone.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-
-                let dx = t.clientX - centerX;
-                let dy = t.clientY - centerY;
-                const d = Math.hypot(dx, dy);
-                const maxRad = 65;
-
-                if (d > maxRad) {
-                    dx *= maxRad / d;
-                    dy *= maxRad / d;
-                }
-
-                document.getElementById('joy-knob').style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                // Normalize speed (0 to 1)
-                moveVec.set(dx / maxRad, -dy / maxRad);
-            }
-            if (t.identifier === fireTouchId) { cameraYaw -= (t.clientX - fireLastX) * cfg.sens * 0.8; cameraPitch = Math.max(-1.5, Math.min(1.5, cameraPitch - (t.clientY - fireLastY) * cfg.sens * 1.2)); fireLastX = t.clientX; fireLastY = t.clientY; }
-            if (t.identifier === lookTouchId) { cameraYaw -= (t.clientX - lastX) * cfg.sens; cameraPitch = Math.max(-1.5, Math.min(1.5, cameraPitch - (t.clientY - lastY) * cfg.sens)); lastX = t.clientX; lastY = t.clientY; }
-        }
+        // ... Legacy Logic ...
     }, { passive: false });
 
     window.addEventListener('touchend', e => {
-        for (let t of e.changedTouches) {
-            if (t.identifier === moveTouchId) {
-                moveTouchId = null;
-                moveVec.set(0, 0);
-                // Hide or Reset Joystick
-                document.getElementById('joy-zone').style.display = 'none';
-                document.getElementById('joy-knob').style.transform = 'translate(-50%, -50%)';
-            } if (t.identifier === fireTouchId) { fireTouchId = null; isShooting = false; isADS = false; camera.fov = cfg.fov; camera.updateProjectionMatrix(); document.getElementById('sniper-scope').style.display = 'none'; } if (t.identifier === lookTouchId) lookTouchId = null;
-        }
+       // ... Legacy Logic ...
     });
+    */
 
 
     // ============================================

@@ -137,12 +137,13 @@ export class InputSystem {
     }
 
     setupMobileControls() {
-        const joystick = document.getElementById('joystick');
-        const joystickKnob = document.getElementById('joystickKnob');
-        const shootButton = document.getElementById('shootButton');
+        const joystick = document.getElementById('joy-zone');
+        const joystickKnob = document.getElementById('joy-knob');
+        // We will handle shooting via separate buttons in main.js or bind them here
+        // For now, let's just make sure joystick works
 
-        if (!joystick || !joystickKnob || !shootButton) {
-            console.warn('⚠️ Mobile controls elements not found!');
+        if (!joystick || !joystickKnob) {
+            console.warn('⚠️ Mobile controls elements not found! Expected IDs: joy-zone, joy-knob');
             return;
         }
 
@@ -163,6 +164,13 @@ export class InputSystem {
                     if (!this.touch.joystickActive) {
                         this.touch.joystickActive = true;
                         this.touch.joystickIdentifier = touch.identifier;
+
+                        // Dynamic Joystick Logic
+                        joystick.style.display = 'block';
+                        // Center is 70px (width 140 / 2)
+                        joystick.style.left = (touch.clientX - 70) + 'px';
+                        joystick.style.top = (touch.clientY - 70) + 'px';
+
                         this.updateJoystickPosition(touch, joystick, joystickKnob);
                     }
                 }
@@ -217,6 +225,7 @@ export class InputSystem {
                     this.touch.joystickIdentifier = null;
                     this.touch.joystickPosition = { x: 0, y: 0 };
                     joystickKnob.style.transform = 'translate(-50%, -50%)';
+                    joystick.style.display = 'none'; // Hide Joystick
 
                     this.keys.moveForward = false;
                     this.keys.moveBackward = false;
