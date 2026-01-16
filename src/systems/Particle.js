@@ -102,6 +102,35 @@ export class ParticleSystem {
     }
 
     /**
+     * Spawn explosion/debris
+     */
+    spawnExplosion(position, color, count = 10) {
+        for (let i = 0; i < count; i++) {
+            const particle = this.particlePool.acquire();
+            particle.position.copy(position);
+            particle.visible = true;
+            particle.userData.active = true;
+            particle.userData.life = 40 + Math.random() * 20;
+            particle.material.color.setHex(color);
+
+            const speed = 0.5;
+            particle.userData.vel = new THREE.Vector3(
+                (Math.random() - 0.5) * speed,
+                (Math.random() - 0.5) * speed + 0.2, // Upward bias
+                (Math.random() - 0.5) * speed
+            );
+
+            particle.scale.set(
+                0.8 + Math.random() * 0.5,
+                0.8 + Math.random() * 0.5,
+                0.8 + Math.random() * 0.5
+            );
+
+            this.activeParticles.push(particle);
+        }
+    }
+
+    /**
      * Update all particles (call every frame)
      */
     update(deltaTime) {

@@ -2,6 +2,9 @@ import { Game } from './core/Game.js';
 import { CharacterFactory } from './entities/CharacterFactory.js';
 import { ObjectPool } from './utils/ObjectPool.js';
 import { ParticleSystem } from './systems/Particle.js';
+import { TrainingArena } from './world/TrainingArena.js'; // 🏟️ NEW MAP
+import { InputSystem } from './systems/InputSystem.js'; // 🎮 NEW INPUT SYSTEM
+import { BulletSystem } from './systems/BulletSystem.js'; // 🔫 NEW BULLET SYSTEM
 import { Network } from './systems/Network.js'; // 🌐 PORTED MULTIPLAYER
 import { openHudEditor, initHudEditor, loadHudLayout } from './ui/HudEditor.js'; // HUD customization
 import * as THREE from 'three';
@@ -31,6 +34,8 @@ let bullets = [], bots = [], obstacles = [], obstacleBoxes = [], grenades = [], 
 let otherPlayers = {}; // 🌐 Multiplayer peers
 let health = 100, armor = 100, lastShot = 0, lastDamageTime = 0, playerKills = 0;
 let particleSystem = null; // 🚀 Particle system for blood and effects
+let inputSystem = null; // 🎮 New Input System
+let bulletSystem = null; // 🔫 New Bullet System
 let zoneRadius = 500, zoneActive = false;
 let initialBotCount = 10, houseData = [];
 let playerName = "SOLDADO";
@@ -82,7 +87,8 @@ function playSfx(type) {
 
 // Criar mundo completo usando função original
 // Criar mundo completo usando lógica do Backup
-function createWorld() {
+function createCanaaWorld() {
+    console.log("🌲 Loading Canaa World...");
     const mapSize = 1000;
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(mapSize * 2.5, mapSize * 2.5), new THREE.MeshStandardMaterial({ color: 0x3d7a3d, roughness: 1 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; floor.userData.isGround = true;
     scene.add(floor); obstacles.push(floor); createMountains(); createLighthouse(0, 0);
@@ -413,7 +419,8 @@ function setupThree() {
     sunObj.position.set(400, 600, 200);
     scene.add(sunObj);
 
-    createWorld();
+    // Initial Load
+    loadMap('canaa');
 
     playerGroup = new THREE.Group();
     charModel = CharacterFactory.createHumanoid(0x2E7D32, 'player', 'player');
@@ -431,6 +438,105 @@ function setupThree() {
 
     // 🚀 Initialize particle system
     particleSystem = new ParticleSystem(scene);
+
+    // 🎮 Initialize Input System
+    // We pass a mock "game" object to InputSystem to give it access to camera and scene
+    const gameAdapter = {
+        camera: camera,
+        scene: scene,
+        player: null, // Will be set later or accessed via global
+        weapon: null
+    };
+    inputSystem = new InputSystem(gameAdapter);
+    inputSystem.init();
+
+    // 🔫 Initialize Bullet System
+    bulletSystem = new BulletSystem({
+        scene: scene,
+        physics: {
+            raycast: (origin, dir, dist) => {
+                ray.set(origin, dir);
+                ray.far = dist;
+
+                // 1. Check Static Obstacles
+                const obsHits = ray.intersectObjects(obstacles, true);
+                let closest = obsHits.length > 0 ? obsHits[0] : null;
+
+                // 2. Check Bots
+                const botHits = ray.intersectObjects(bots, true);
+                if (botHits.length > 0) {
+                    const botHit = botHits[0];
+                    if (!closest || botHit.distance < closest.distance) {
+                        closest = botHit;
+                        closest.object.userData.isEntity = true; // Flag for BulletSystem
+                    }
+                }
+
+                return closest;
+            }
+        },
+        particleSystem: particleSystem,
+        onHit: (hit, bullet) => {
+            // 💥 DAMAGE LOGIC
+            let target = hit.object;
+            const isHeadshot = (hit.point.y - target.position.y) > 1.6;
+
+            // 1. Check if hit Player (Global group or children)
+            let isPlayer = false;
+            let tempParams = target;
+            while (tempParams) {
+                if (tempParams === playerGroup) { isPlayer = true; break; }
+                tempParams = tempParams.parent;
+            }
+
+            if (isPlayer) {
+                // Bots hitting player
+                if (bullet.owner !== 'player') {
+                    health -= (bullet.damage || 10);
+                    lastDamageTime = clock.getElapsedTime();
+                    playSfx('hit');
+                    if (particleSystem) particleSystem.spawnBlood(camera.position, new THREE.Vector3(0, 0, 1), 5); // Screen blood?
+                }
+                return;
+            }
+
+            // 2. Check if hit Bot
+            // Traverse up to find the bot root (which has 'hp')
+            while (target && typeof target.userData.hp === 'undefined' && target.parent) {
+                target = target.parent;
+            }
+
+            if (target && typeof target.userData.hp !== 'undefined') {
+                // It's a bot
+                // Prevent Friendly Fire?
+                if (bullet.owner === 'bot' && target.userData.isAlly) return;
+                if (bullet.owner === 'bot' && !target.userData.isAlly) return; // Enemies don't shoot enemies
+                if (target.userData.isAlly && bullet.owner === 'player') return; // Player don't shoot allies
+
+                let damage = bullet.damage || (currentWeapon === 'SNIPER' ? 75 : 25);
+                if (isHeadshot) damage *= 2;
+
+                target.userData.hp -= damage;
+                target.userData.isAlerted = true;
+
+                // Visuals
+                if (particleSystem) {
+                    particleSystem.spawnBlood(hit.point, hit.face.normal, isHeadshot ? 8 : 5);
+                }
+                playSfx('hit');
+
+                // Kill Check
+                if (target.userData.hp <= 0 && target.userData.active !== false) {
+                    target.userData.active = false; // Mark dead
+                    playerKills++;
+                    if (document.getElementById('count-kills'))
+                        document.getElementById('count-kills').innerText = playerKills;
+                    scene.remove(target);
+                }
+            }
+        }
+    });
+    bulletSystem.init();
 
     // 🚀 Initialize bullet pool (MUST be after scene creation!)
     bulletPool = new ObjectPool(
@@ -452,6 +558,7 @@ function setupThree() {
     );
 
     setupGameInput();
+    // setupBotsPeriphery(); // ❌ REDUNDANT: loadMap handles this
     scene.updateMatrixWorld(true);
     updateCollisionBoxes();
 
@@ -788,6 +895,57 @@ function animate() {
     // --- CORREÇÃO DE ROTAÇÃO: CORPO DE COSTAS PARA A CÂMERA (Math.PI adicionado) ---
     if (charModel) charModel.rotation.y = THREE.MathUtils.lerp(charModel.rotation.y, cameraYaw + Math.PI, 0.3 * fpsScale);
 
+    // 🎮 NEW INPUT INTEGRATION
+    const isMoving = inputSystem.keys.moveForward || inputSystem.keys.moveBackward ||
+        inputSystem.keys.moveLeft || inputSystem.keys.moveRight;
+
+    // Update player rotation from InputSystem
+    if (inputSystem.cameraYaw !== undefined) cameraYaw = inputSystem.cameraYaw;
+    if (inputSystem.cameraPitch !== undefined) cameraPitch = inputSystem.cameraPitch;
+
+    // Movement Vector from InputSystem
+    const moveSpeed = isRunning ? 0.8 : 0.4; // Slightly faster
+    let dx = 0, dz = 0;
+
+    if (inputSystem.keys.moveForward) dz = -1;
+    if (inputSystem.keys.moveBackward) dz = 1;
+    if (inputSystem.keys.moveLeft) dx = -1;
+    if (inputSystem.keys.moveRight) dx = 1;
+
+    // Normalize
+    if (dx !== 0 || dz !== 0) {
+        const len = Math.hypot(dx, dz);
+        dx /= len; dz /= len;
+    }
+
+    // Apply rotation to movement (move relative to camera look)
+    const sin = Math.sin(cameraYaw);
+    const cos = Math.cos(cameraYaw);
+
+    // Forward/Back
+    playerGroup.position.x -= dz * sin * moveSpeed * fpsScale;
+    playerGroup.position.z -= dz * cos * moveSpeed * fpsScale;
+
+    // Strafe Left/Right
+    playerGroup.position.x -= dx * cos * moveSpeed * fpsScale;
+    playerGroup.position.z += dx * sin * moveSpeed * fpsScale;
+
+    // Jump
+    if (inputSystem.keys.jump && jumps < 2) {
+        vY = 0.8;
+        jumps++;
+        inputSystem.keys.jump = false; // Reset trigger
+    }
+
+    // Shooting
+    if (inputSystem.keys.shoot || isShooting) { // Support both new and legacy flags
+        // We can trigger shoot here or let Weapon handle it
+    }
+
+    // Update Bullet System
+    if (bulletSystem) bulletSystem.update(delta);
+
+    /* ❌ LEGACY INPUT REMOVED
     // Combine Touch + Keyboard Input
     let inputX = moveVec.x + keyMoveVec.x;
     let inputY = moveVec.y + keyMoveVec.y;
@@ -798,6 +956,7 @@ function animate() {
 
     // Use COMBINED input for moving check
     const isMoving = Math.hypot(inputX, inputY) > 0.1;
+    */
 
     // Debug for User
     if (window._debugMode) {
@@ -833,6 +992,14 @@ function animate() {
     CharacterFactory.animateLimbs(charModel, delta, isMoving, isInAir, cameraPitch);
 
     if (isMoving) {
+        // 🎮 FIX: Derive inputX/Y from InputSystem
+        let inputX = 0;
+        let inputY = 0;
+        if (inputSystem.keys.moveRight) inputX += 1;
+        if (inputSystem.keys.moveLeft) inputX -= 1;
+        if (inputSystem.keys.moveForward) inputY += 1;
+        if (inputSystem.keys.moveBackward) inputY -= 1;
+
         const moveAngle = Math.atan2(inputX, inputY);
         const dir = tempVec.set(0, 0, -1).applyAxisAngle(tempVec2.set(0, 1, 0), cameraYaw + moveAngle);
         const nextX = playerGroup.position.x + dir.x * speed;
@@ -1004,78 +1171,14 @@ function animate() {
         shootBullet();
     }
 
-    // 🔫 BULLET PHYSICS & COLLISION
+    // 🔫 BULLET UPDATE (Handled by BulletSystem)
+    if (bulletSystem) bulletSystem.update(delta);
+
+    /* ❌ LEGACY BULLET UPDATE REMOVED - Using BulletSystem
     for (let i = bullets.length - 1; i >= 0; i--) {
-        const b = bullets[i];
-        const moveStep = tempVec.copy(b.userData.vel).multiplyScalar(fpsScale);
-        const prevPos = b.position.clone();
-
-        ray.ray.origin.copy(prevPos);
-        ray.ray.direction.copy(b.userData.vel).normalize();
-        ray.far = moveStep.length();
-        const wallHits = ray.intersectObjects(solidObstacles);
-
-        b.position.add(moveStep);
-
-        // Wall Collision
-        if (wallHits.length > 0) {
-            // Spawn impact particle if needed
-            // scene.add(new THREE.Mesh(new THREE.SphereGeometry(0.5), new THREE.MeshBasicMaterial({color:0xff0000})).position.copy(wallHits[0].point)); // DEBUG IMPACT
-            scene.remove(b);
-            if (b.userData.active && bulletPool) bulletPool.release(b); // Return to pool
-            else bullets.splice(i, 1); // Fallback
-            continue;
-        }
-
-        // Target Collision (Bots)
-        let hitTarget = false;
-        if (b.userData.owner === 'player') {
-            for (let bot of bots) {
-                if (bot.userData.hp <= 0) continue;
-                // INCREASED HITBOX: Was 1.0, User requested fix. Increased to 3.5 (Generous)
-                if (Math.abs(b.position.y - bot.position.y - 1.5) < 3.0 && b.position.distanceTo(bot.position) < 3.5) {
-                    bot.userData.hp -= b.userData.damage || 30;
-                    bot.userData.isAlerted = true;
-                    triggerHitmarker();
-                    hitTarget = true;
-
-                    // Visual Feedack
-                    if (particleSystem) {
-                        particleSystem.spawnBlood(bot.position.clone().add(new THREE.Vector3(0, 1.5, 0)), new THREE.Vector3(0, 1, 0), 5);
-                    }
-
-                    if (bot.userData.hp <= 0) {
-                        // Kill Logic
-                        scene.remove(bot);
-                        // Remove from bots array logic is handled in udpateBots usually, but bullet loop needs to handle kill count
-                        // Better to just set HP to 0 and let updateBots clean up?
-                        // updateBots cleans up? Let's check.
-                        // Actually updateBots logic currently doesn't remove instantly?
-                        // Let's rely on updateBots to remove or remove here.
-                        playerKills++;
-                        document.getElementById('count-kills').innerText = playerKills;
-                        scene.remove(bot); // Remove visual immediately
-                    }
-                    break;
-                }
-            }
-        }
-
-        // Remove if too old or hit
-        if (hitTarget) {
-            scene.remove(b);
-            if (b.userData.active && bulletPool) bulletPool.release(b);
-            else bullets.splice(i, 1);
-            continue;
-        }
-
-        b.userData.life -= 1 * fpsScale;
-        if (b.userData.life <= 0) {
-            scene.remove(b);
-            if (b.userData.active && bulletPool) bulletPool.release(b);
-            else bullets.splice(i, 1);
-        }
+        // ... (Legacy code removed)
     }
+    */
 
     // --- GAME LOOP LOGIC RESTORED ---
     // 1. Armor Regen
@@ -1154,6 +1257,7 @@ window.togglePause = function () {
             <h1 style="color: #fcee0a; font-size: 48px; margin-bottom: 30px;">PAUSADO</h1>
             <div style="display: flex; flex-direction: column; gap: 15px;">
                 <button onclick="togglePause()" style="padding: 15px 40px; font-size: 18px; background: #fcee0a; border: none; cursor: pointer; font-weight: bold;">CONTINUAR</button>
+                <button onclick="window.switchMapUI()" style="padding: 15px 40px; font-size: 18px; background: #00ff00; border: none; cursor: pointer; font-weight: bold;">TROCAR MAPA</button>
                 <button onclick="location.reload()" style="padding: 15px 40px; font-size: 18px; background: #ff003c; color: white; border: none; cursor: pointer; font-weight: bold;">SAIR</button>
             </div>
             <div style="margin-top: 30px; font-size: 14px; color: #aaa;">
@@ -1197,127 +1301,42 @@ function checkPlayerCollision() {
 }
 
 function shootBullet() {
-    if (!bulletPool) return; // Safety: Don't shoot if pool not initialized
+    if (!bulletSystem) return;
 
     playSfx(currentWeapon === 'SNIPER' ? 'sniper' : 'shoot');
 
-    // 🚀 USE OBJECT POOL - No more "new THREE.Mesh()"!
-    const bullet = bulletPool.acquire();
-    bullet.position.copy(camera.position);
-    bullet.visible = true;
-    bullet.userData.active = true;
-
+    // 🚀 NEW SYSTEM: Delegate to BulletSystem
     ray.setFromCamera({ x: 0, y: 0 }, camera);
     const dir = ray.ray.direction.clone().normalize();
-    bullet.userData.vel = dir.multiplyScalar(5);
-    bullet.userData.life = 120;
-    bullet.userData.owner = 'player';
 
-    // 🚀 Spawn muzzle flash particle effect
-    if (particleSystem) {
-        particleSystem.spawnMuzzleFlash(camera.position, dir);
-    }
-
-    // No need to scene.add() - already in scene from pool
-    bullets.push(bullet);
+    // Create Bullet (Visuals + Physics handled internally)
+    bulletSystem.createBullet(camera.position, dir);
 }
 
 // 🤖 GENERIC SPAWN BULLET (Used by Bots & functions needing explicit args)
+// 🤖 GENERIC SPAWN BULLET (Used by Bots)
 function spawnBullet(ownerType, startPos, targetPos, ownerId, speedOverride) {
-    if (!bulletPool) return;
+    if (!bulletSystem) return;
 
-    if (ownerType === 'bot') playSfx('shoot'); // Simple SFX for bots
+    if (ownerType === 'bot') playSfx('shoot');
 
-    const bullet = bulletPool.acquire();
-    bullet.position.copy(startPos);
-    bullet.visible = true;
-    bullet.userData.active = true;
-
-    // Calc direction
+    // Calculate direction
     const dir = new THREE.Vector3().subVectors(targetPos, startPos).normalize();
-    const speed = speedOverride || 5; // Default speed
 
-    // Spread for realism (optional)
-    // dir.x += (Math.random() - 0.5) * 0.05;
-    // dir.y += (Math.random() - 0.5) * 0.05;
-    // dir.z += (Math.random() - 0.5) * 0.05;
-    // dir.normalize();
+    // Create bullet via System
+    const bullet = bulletSystem.createBullet(startPos, dir);
 
-    bullet.userData.vel = dir.multiplyScalar(speed);
-    bullet.userData.life = 120;
-    bullet.userData.owner = ownerType; // 'player' or 'bot'
-    bullet.userData.ownerId = ownerId;
+    // Attach metadata
+    bullet.owner = ownerType; // 'player' or 'bot'
+    bullet.damage = (ownerType === 'bot') ? 10 : 25; // Bot damage
 
-    if (particleSystem) {
-        particleSystem.spawnMuzzleFlash(startPos, dir);
-    }
-
-    bullets.push(bullet);
+    // Muzzle flash handled by BulletSystem? No, currently in createBullet for player?
+    // BulletSystem.createBullet spawns flash at origin.
 }
 
+/* ❌ LEGACY updateBullets REMOVED - Replaced by BulletSystem */
 function updateBullets(deltaTime) {
-    for (let i = bullets.length - 1; i >= 0; i--) {
-        const bullet = bullets[i];
-
-        // Skip inactive bullets (already returned to pool)
-        if (!bullet.userData.active) {
-            bullets.splice(i, 1);
-            continue;
-        }
-
-        bullet.position.add(bullet.userData.vel);
-        bullet.userData.life--;
-
-        if (bullet.userData.life <= 0) {
-            // 🚀 RETURN TO POOL - No more "scene.remove()"!
-            bulletPool.release(bullet);
-            bullets.splice(i, 1);
-            continue;
-        }
-
-        // Hit detection
-        for (let j = 0; j < bots.length; j++) {
-            // Fix Hitbox: Check distance to CENTER of bot (height 2.0), not feet (0.0)
-            const botCenter = bots[j].position.clone().add(new THREE.Vector3(0, 2.0, 0));
-            // Increased radius slightly for easier hits (2 -> 3)
-            if (bullet.position.distanceTo(botCenter) < 3.0) {
-                // Hit!
-                let damage = currentWeapon === 'SNIPER' ? 75 : 25;
-
-                // 🤯 HEADSHOT CHECK
-                // If bullet is high relative to bot feet
-                const isHeadshot = (bullet.position.y - bots[j].position.y) > 1.6;
-                if (isHeadshot) {
-                    damage *= 2;
-                    playSfx('hit'); // Double sound for feedback?
-                    // Ideally show "HEADSHOT" UI or separate hitmarker sound
-                }
-
-                bots[j].userData.hp -= damage;
-
-                // 🚀 Spawn blood splatter particles
-                if (particleSystem) {
-                    particleSystem.spawnBlood(
-                        bots[j].position.clone().add(new THREE.Vector3(0, isHeadshot ? 1.7 : 1.2, 0)),
-                        bullet.userData.vel.clone().normalize(),
-                        isHeadshot ? 8 : 4
-                    );
-                }
-
-                if (bots[j].userData.hp <= 0) {
-                    scene.remove(bots[j]);
-                    bots.splice(j, 1);
-                    playerKills++;
-                    document.getElementById('count-kills').innerText = playerKills;
-                }
-                // 🚀 RETURN TO POOL - No more "scene.remove()"!
-                bulletPool.release(bullet);
-                bullets.splice(i, 1);
-                playSfx('hit');
-                break;
-            }
-        }
-    }
+    // Deprecated
 }
 
 function spawnBot(isAlly) {
@@ -1630,6 +1649,63 @@ function createNPCHealthBar() {
 window.clearBots = () => {
     bots.forEach(b => scene.remove(b));
     bots = [];
+};
+
+// 🗺️ MAP SWITCHING
+let currentMap = 'canaa';
+
+window.switchMapUI = () => {
+    const nextMap = currentMap === 'canaa' ? 'training' : 'canaa';
+    loadMap(nextMap);
+    togglePause(); // Resume game
+};
+
+window.loadMap = (type) => {
+    // 1. Clear World
+    // Remove obstacles from scene
+    obstacles.forEach(obj => {
+        // handle Groups (House) or Meshes
+        scene.remove(obj);
+        // If group, check children? THREE.group removed from scene removes children visuals
+    });
+    // Check medkits
+    medkits.forEach(m => scene.remove(m));
+    medkits = [];
+
+    // Reset arrays
+    obstacles = [];
+    solidObstacles = [];
+    groundObstacles = [];
+    obstacleBoxes = [];
+
+    // Remove Bots (They need to be respawned safely)
+    bots.forEach(b => scene.remove(b));
+    bots = [];
+
+    // 2. Load New World
+    currentMap = type;
+    if (type === 'canaa') {
+        createCanaaWorld();
+    } else if (type === 'training') {
+        console.log("🎯 Loading Training Arena...");
+        const arena = new TrainingArena(scene);
+        const newMeshes = arena.create();
+        obstacles.push(...newMeshes);
+    }
+
+    // 3. Reset Player & Bots
+    // Reset Player Position to safe spot
+    if (playerGroup) {
+        playerGroup.position.set(0, 50, 0); // Drop from sky
+        vY = 0;
+    }
+
+    // Respawn Bots
+    initialBotsSpawned = false;
+    setupBotsPeriphery();
+
+    // Re-calc collisions
+    updateCollisionBoxes();
 };
 
 window.cleanupBots = (validIds) => {
