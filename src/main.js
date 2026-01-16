@@ -906,43 +906,11 @@ function animate() {
     // --- CORREÇÃO DE ROTAÇÃO: CORPO DE COSTAS PARA A CÂMERA (Math.PI adicionado) ---
     if (charModel) charModel.rotation.y = THREE.MathUtils.lerp(charModel.rotation.y, cameraYaw + Math.PI, 0.3 * fpsScale);
 
-    // 🎮 NEW INPUT INTEGRATION
-    const isMoving = inputSystem.keys.moveForward || inputSystem.keys.moveBackward ||
-        inputSystem.keys.moveLeft || inputSystem.keys.moveRight;
+    // 🎮 MOVEMENT LOGIC MOVED TO KRUNKER BLOCK BELOW
 
-    // Update player rotation from InputSystem
-    if (inputSystem.cameraYaw !== undefined) cameraYaw = inputSystem.cameraYaw;
-    if (inputSystem.cameraPitch !== undefined) cameraPitch = inputSystem.cameraPitch;
-
-    // Movement Vector from InputSystem
-    const moveSpeed = isRunning ? 0.8 : 0.4; // Slightly faster
-    let dx = 0, dz = 0;
-
-    if (inputSystem.keys.moveForward) dz = -1;
-    if (inputSystem.keys.moveBackward) dz = 1;
-    if (inputSystem.keys.moveLeft) dx = -1;
-    if (inputSystem.keys.moveRight) dx = 1;
-
-    // Normalize
-    if (dx !== 0 || dz !== 0) {
-        const len = Math.hypot(dx, dz);
-        dx /= len; dz /= len;
-    }
-
-    // Apply rotation to movement (move relative to camera look)
-    const sin = Math.sin(cameraYaw);
-    const cos = Math.cos(cameraYaw);
-
-    // Forward/Back
-    playerGroup.position.x -= dz * sin * moveSpeed * fpsScale;
-    playerGroup.position.z -= dz * cos * moveSpeed * fpsScale;
-
-    // Strafe Left/Right
-    playerGroup.position.x -= dx * cos * moveSpeed * fpsScale;
-    playerGroup.position.z += dx * sin * moveSpeed * fpsScale;
 
     // Jump
-    if (inputSystem.keys.jump && jumps < 2) {
+    if (inputSystem && inputSystem.keys.jump && jumps < 2) {
         vY = 0.8;
         jumps++;
         inputSystem.keys.jump = false; // Reset trigger
@@ -1009,14 +977,17 @@ function animate() {
     // 🏃 MOVEMENT INPUT
     let inputX = 0;
     let inputY = 0;
-    // INVERTED LOGIC AS REQUESTED (Swapped +/-)
-    if (inputSystem.keys.moveRight) inputX -= 1; // Was +, now -
-    if (inputSystem.keys.moveLeft) inputX += 1;  // Was -, now +
-    if (inputSystem.keys.moveForward) inputY += 1; // Was -, now +
-    if (inputSystem.keys.moveBackward) inputY -= 1; // Was +, now -
+    let isMoving = false;
 
-    // UPDATE STATE
-    isMoving = (inputX !== 0 || inputY !== 0);
+    if (inputSystem) {
+        // INVERTED LOGIC AS REQUESTED (Swapped +/-)
+        if (inputSystem.keys.moveRight) inputX -= 1; // Was +, now -
+        if (inputSystem.keys.moveLeft) inputX += 1;  // Was -, now +
+        if (inputSystem.keys.moveForward) inputY += 1; // Was -, now +
+        if (inputSystem.keys.moveBackward) inputY -= 1; // Was +, now -
+
+        isMoving = (inputX !== 0 || inputY !== 0);
+    }
 
     // Pass isInAir as 4th argument (replacing unused 'angle')
     CharacterFactory.animateLimbs(charModel, delta, isMoving, isInAir, cameraPitch);
@@ -1024,14 +995,14 @@ function animate() {
     // 🏃KRUNKER-LIKE PHYSICS
 
     // Slide Boost Control
-    if (inputSystem.keys.crouch && !isSliding && !isInAir) {
+    if (inputSystem && inputSystem.keys.crouch && !isSliding && !isInAir) {
         isSliding = true;
         // Impulse boost if moving
         if (inputX !== 0 || inputY !== 0) {
             // Add speed in direction
         }
     }
-    if (!inputSystem.keys.crouch) isSliding = false;
+    if (inputSystem && !inputSystem.keys.crouch) isSliding = false;
 
     // Wish Direction
     const wishDir = new THREE.Vector3(inputX, 0, inputY);
