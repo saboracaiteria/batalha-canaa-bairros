@@ -13,7 +13,8 @@ export class InputSystem {
             moveLeft: false,
             moveRight: false,
             jump: false,
-            sprint: false
+            sprint: false,
+            crouch: false // for Slide Boost
         };
         this.mouse = { x: 0, y: 0 };
         this.touch = {
@@ -75,6 +76,7 @@ export class InputSystem {
             case 'KeyD': this.keys.moveRight = true; break;
             case 'Space': this.keys.jump = true; break;
             case 'ShiftLeft': this.keys.sprint = true; break;
+            case 'KeyC': this.keys.crouch = true; break;
             case 'KeyR': if (this.game.player) this.game.player.reload(); break;
         }
     }
@@ -87,6 +89,7 @@ export class InputSystem {
             case 'KeyD': this.keys.moveRight = false; break;
             case 'Space': this.keys.jump = false; break;
             case 'ShiftLeft': this.keys.sprint = false; break;
+            case 'KeyC': this.keys.crouch = false; break;
         }
     }
 

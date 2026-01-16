@@ -20,8 +20,8 @@ export class Buildings {
             saco: new THREE.MeshStandardMaterial({ color: 0x9e9578, roughness: 1.0 })
         };
 
-        // Instance data collectors
-        this.instances = {
+        // Buffer collections (Mega Buffer Optimization)
+        this.geometriesToMerge = {
             parede: [],
             concreto: [],
             metal: [],
@@ -97,13 +97,12 @@ export class Buildings {
         } else {
             console.log('🏗️ No custom house found. Generating procedural instances...');
 
-            // Procedural generation (Fallback)
             housePositions.forEach(pos => {
                 this.addHouseInstances(pos.x, pos.z, pos.angle, pos.id);
             });
 
-            // Create final instanced meshes
-            this.createInstancedMeshes();
+            // Finalize Mega Buffer
+            this.finalizeMap();
         }
     }
 
@@ -111,60 +110,69 @@ export class Buildings {
      * Add a single house's geometry to instance arrays
      */
     addHouseInstances(x, z, rotation, houseId) {
-        const scale = 4.5;
-        const matrix = new THREE.Matrix4();
+        // Transform logic adapted for Buffer system
+        // We calculate world position manually before pushing to buffer
+        const cos = Math.cos(rotation);
+        const sin = Math.sin(rotation);
 
-        // Helper to add box instance
-        const addBox = (type, w, h, d, px, py, pz) => {
-            matrix.compose(
-                new THREE.Vector3(x + px * scale, py * scale, z + pz * scale),
-                new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rotation, 0)),
-                new THREE.Vector3(w * scale, h * scale, d * scale)
-            );
+        const addHousePart = (type, w, h, d, lx, ly, lz) => {
+            // Scale logic from original (4.5)
+            const s = 4.5;
+            const finalW = w * s;
+            const finalH = h * s;
+            const finalD = d * s;
 
-            this.instances[type].push({
-                matrix: matrix.clone(),
-                geometry: new THREE.BoxGeometry(1, 1, 1) // Unit cube, scaled by matrix
-            });
+            // Local pos scaled
+            const localX = lx * s;
+            const localY = ly * s;
+            const localZ = lz * s;
+
+            // Rotate position
+            // WorldX = HouseX + (LocalX * cos - LocalZ * sin)
+            const worldX = x + (localX * cos - localZ * sin);
+            const worldZ = z + (localX * sin + localZ * cos);
+
+            // Push
+            this.pushToBuffer(type, finalW, finalH, finalD, worldX, localY, worldZ, rotation);
         };
 
         // GROUND FLOOR
-        addBox('parede', 6, 3.5, 0.2, 0, 1.75, -2.4); // Back wall
-        addBox('parede', 0.2, 3.5, 5, -2.9, 1.75, 0); // Left wall
-        addBox('parede', 2.0, 3.5, 0.2, -2.0, 1.75, 2.4); // Front left
-        addBox('parede', 2.0, 3.5, 0.2, 2.0, 1.75, 2.4); // Front right
-        addBox('parede', 2.0, 0.7, 0.2, 0, 3.15, 2.4); // Door lintel
-        addBox('parede', 0.2, 3.5, 2, 2.9, 1.75, 1.5);
-        addBox('parede', 0.2, 3.5, 1, 2.9, 1.75, -2);
-        addBox('parede', 0.2, 1, 2, 2.9, 3, 0); // Garage lintel
+        addHousePart('parede', 6, 3.5, 0.2, 0, 1.75, -2.4); // Back wall
+        addHousePart('parede', 0.2, 3.5, 5, -2.9, 1.75, 0); // Left wall
+        addHousePart('parede', 2.0, 3.5, 0.2, -2.0, 1.75, 2.4); // Front left
+        addHousePart('parede', 2.0, 3.5, 0.2, 2.0, 1.75, 2.4); // Front right
+        addHousePart('parede', 2.0, 0.7, 0.2, 0, 3.15, 2.4); // Door lintel
+        addHousePart('parede', 0.2, 3.5, 2, 2.9, 1.75, 1.5);
+        addHousePart('parede', 0.2, 3.5, 1, 2.9, 1.75, -2);
+        addHousePart('parede', 0.2, 1, 2, 2.9, 3, 0); // Garage lintel
 
         // SECOND FLOOR
-        addBox('concreto', 3.0, 0.2, 5, 1.5, 3.5, 0); // Floor
-        addBox('concreto', 3.0, 0.2, 1.5, -1.5, 3.5, -1.75);
-        addBox('concreto', 4, 3, 0.2, -1, 5, 2.4); // Front
-        addBox('concreto', 4, 3, 0.2, -1, 5, -2.4); // Back
-        addBox('concreto', 0.2, 3, 5, -2.9, 5, 0); // Left
-        addBox('concreto', 0.2, 3, 1, 0.9, 5, 0); // Central pillar
+        addHousePart('concreto', 3.0, 0.2, 5, 1.5, 3.5, 0); // Floor
+        addHousePart('concreto', 3.0, 0.2, 1.5, -1.5, 3.5, -1.75);
+        addHousePart('concreto', 4, 3, 0.2, -1, 5, 2.4); // Front
+        addHousePart('concreto', 4, 3, 0.2, -1, 5, -2.4); // Back
+        addHousePart('concreto', 0.2, 3, 5, -2.9, 5, 0); // Left
+        addHousePart('concreto', 0.2, 3, 1, 0.9, 5, 0); // Central pillar
 
         // ROOF
-        addBox('concreto', 4.4, 0.2, 5.4, -1, 6.5, 0);
-        addBox('concreto', 4.4, 0.4, 0.2, -1, 6.8, 2.6); // Parapet
-        addBox('concreto', 0.2, 0.4, 5.4, -3.1, 6.8, 0); // Parapet
+        addHousePart('concreto', 4.4, 0.2, 5.4, -1, 6.5, 0);
+        addHousePart('concreto', 4.4, 0.4, 0.2, -1, 6.8, 2.6); // Parapet
+        addHousePart('concreto', 0.2, 0.4, 5.4, -3.1, 6.8, 0); // Parapet
 
         // BALCONY
-        addBox('concreto', 2, 0.2, 5, 2, 3.5, 0);
-        addBox('concreto', 2, 1, 0.2, 2, 4, 2.4);
-        addBox('concreto', 0.2, 1, 5, 2.9, 4, 0);
+        addHousePart('concreto', 2, 0.2, 5, 2, 3.5, 0);
+        addHousePart('concreto', 2, 1, 0.2, 2, 4, 2.4);
+        addHousePart('concreto', 0.2, 1, 5, 2.9, 4, 0);
 
         // GARAGE
-        addBox('metal', 3.2, 0.1, 4.2, 4.5, 3.2, -0.5);
-        addBox('metal', 0.1, 3, 4, 6, 1.5, -0.5);
-        addBox('metal', 3, 3, 0.1, 4.5, 1.5, -2.5);
-        addBox('metal', 1, 3, 0.1, 5.5, 1.5, 1.5);
+        addHousePart('metal', 3.2, 0.1, 4.2, 4.5, 3.2, -0.5);
+        addHousePart('metal', 0.1, 3, 4, 6, 1.5, -0.5);
+        addHousePart('metal', 3, 3, 0.1, 4.5, 1.5, -2.5);
+        addHousePart('metal', 1, 3, 0.1, 5.5, 1.5, 1.5);
 
         // DETAILS
-        addBox('saco', 0.7, 0.3, 0.5, -1, 6.8, 2.2); // Sandbag
-        addBox('madeira', 1, 1, 1, 2, 0.5, -1.5); // Crate
+        addHousePart('saco', 0.7, 0.3, 0.5, -1, 6.8, 2.2); // Sandbag
+        addHousePart('madeira', 1, 1, 1, 2, 0.5, -1.5); // Crate
 
         // Store house data for gameplay
         this.houseData.push({
@@ -176,31 +184,63 @@ export class Buildings {
     }
 
     /**
-     * Create the final InstancedMesh objects
+     * Creates a box and pushes it to the geometry merge buffer
      */
-    createInstancedMeshes() {
-        for (const [type, instances] of Object.entries(this.instances)) {
-            if (instances.length === 0) continue;
+    pushToBuffer(type, w, h, d, x, y, z, rotY = 0) {
+        // 1. Create geometry
+        const geo = new THREE.BoxGeometry(w, h, d);
 
-            const count = instances.length;
-            const geometry = new THREE.BoxGeometry(1, 1, 1);
-            const material = this.materials[type];
+        // 2. Position and Rotate
+        const matrix = new THREE.Matrix4();
+        const rotation = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rotY);
+        const position = new THREE.Vector3(x, y, z);
+        matrix.compose(position, rotation, new THREE.Vector3(1, 1, 1));
+        geo.applyMatrix4(matrix);
 
-            const instancedMesh = new THREE.InstancedMesh(geometry, material, count);
-            instancedMesh.castShadow = true;
-            instancedMesh.receiveShadow = true;
-
-            // Set matrices for each instance
-            instances.forEach((inst, i) => {
-                instancedMesh.setMatrixAt(i, inst.matrix);
-            });
-
-            instancedMesh.instanceMatrix.needsUpdate = true;
-            this.game.scene.add(instancedMesh);
-
-            // Store for collision (we'll need to implement per-instance collision later)
-            this.obstacles.push(instancedMesh);
+        // 3. Save to list
+        if (this.geometriesToMerge[type]) {
+            this.geometriesToMerge[type].push(geo);
         }
+
+        // 4. Create Invisible Collision Box (Only at player height to optimize)
+        if (y < 10) {
+            const box = new THREE.Box3().setFromBufferAttribute(geo.attributes.position);
+            box.userData = { isWall: true, isSolid: true }; // Flag logic
+            if (y > 4) box.userData.isRoof = true; // Flag for ceiling check
+
+            // Add to global collision system (need access to main game's obstacleBoxes)
+            if (window.obstacleBoxes) {
+                window.obstacleBoxes.push(box);
+            }
+        }
+    }
+
+    /**
+     * Finalize map by merging all geometries (Mega Buffer)
+     */
+    finalizeMap() {
+        console.log("🏗️ Mega Buffer: Merging geometries...");
+
+        for (const [type, geoList] of Object.entries(this.geometriesToMerge)) {
+            if (geoList.length > 0) {
+                // The Magic: Merge thousands of geometries into one
+                const mergedGeo = BufferGeometryUtils.mergeGeometries(geoList);
+                const mesh = new THREE.Mesh(mergedGeo, this.materials[type]);
+
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.matrixAutoUpdate = false; // Optimization: Static map
+                mesh.updateMatrix();
+
+                this.game.scene.add(mesh);
+                this.obstacles.push(mesh); // Add to general obstacles list (for Raycasting visual checks)
+
+                // Cleanup
+                geoList.forEach(g => g.dispose());
+                this.geometriesToMerge[type] = [];
+            }
+        }
+        console.log("🚀 MAP OPTIMIZED: 1 Draw Call per Material");
     }
 
     /**
