@@ -387,6 +387,18 @@ export class Network {
     listenToGrenades() {
         onChildAdded(this.refs.nades, (snapshot) => {
             const d = snapshot.val();
+            if (!d) return;
+
+            // 🕒 TIME FILTER: Ignore grenades older than 5 seconds
+            const now = Date.now();
+            if (d.time && (now - d.time > 5000)) {
+                // If I am leader, clean this garbage
+                if (this.isLeader) {
+                    remove(snapshot.ref).catch(() => { });
+                }
+                return;
+            }
+
             if (d.owner === this.currentUser.uid) return; // Ignore own
             if (this.game.spawnRemoteGrenade) this.game.spawnRemoteGrenade(d);
         });

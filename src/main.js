@@ -1759,7 +1759,7 @@ window.initGame = (mode) => {
         const gameInterface = {
             scene,
             player: playerGroup,
-            bots,
+            get bots() { return bots; }, // Getter for dynamic reference
             setupBotsPeriphery: setupBotsPeriphery,
             spawnRemoteGrenade: window.spawnRemoteGrenade,
             syncBot: window.syncBot,
