@@ -39,6 +39,11 @@ export class Menus {
             tabElement.classList.remove('hidden');
         }
 
+        // 🌐 NETWORK CLEAUNUP
+        if (tab !== 'multi' && window.gameNetwork) {
+            window.gameNetwork.disconnect();
+        }
+
         // Activate button
         const activeBtn = document.querySelector(`[data-tab="${tab}"]`);
         if (activeBtn) {

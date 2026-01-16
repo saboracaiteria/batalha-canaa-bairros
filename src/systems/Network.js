@@ -1,5 +1,5 @@
-
 import * as THREE from 'three';
+import { CharacterFactory } from '../entities/CharacterFactory.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getDatabase, ref, set, update, onValue, remove, serverTimestamp, push, onChildAdded, onDisconnect } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
@@ -93,6 +93,24 @@ export class Network {
         this.keepAlive = setInterval(() => {
             if (this.auth.currentUser) update(presenceRef, { lastUpdate: serverTimestamp() }).catch(() => { });
         }, 5000);
+    }
+
+    disconnect() {
+        console.log('🔌 Disconnecting Network...');
+        if (this.keepAlive) clearInterval(this.keepAlive);
+
+        // Force remove presence immediately
+        if (this.currentUser) {
+            const presenceRef = ref(this.db, `artifacts/${APP_ID}/public/data/${this.roomName}/${this.currentUser.uid}`);
+            remove(presenceRef).catch(console.error);
+        }
+
+        // Reset state
+        this.isMultiplayer = false;
+        this.isLeader = false;
+        // this.otherPlayers = {}; // Should we clear meshes? Maybe caller does that.
+
+        if (this.game && this.game.clearBots) this.game.clearBots();
     }
 
     // New method to show agents in Lobby
@@ -320,9 +338,11 @@ export class Network {
             // Fix rotation (Backup said + PI)
             mesh.rotation.y = data.ry + Math.PI;
 
-            // Update Animation (Simple)
-            // const isMoving = mesh.position.distanceTo(targetPos) > 0.1;
-            // if(window.updateCharAnim) window.updateCharAnim(mesh, isMoving, 0, 0); // Assuming updateCharAnim is global too
+            // ANIMATION (Limbs & Weapon Pitch)
+            const isMoving = mesh.position.distanceTo(targetPos) > 0.1;
+            if (CharacterFactory && CharacterFactory.animateLimbs) {
+                CharacterFactory.animateLimbs(mesh, 0.016, isMoving, false, data.pitch || 0);
+            }
         }
     }
 
@@ -402,7 +422,10 @@ export class Network {
                 x: this.game.player.position.x,
                 y: this.game.player.position.y,
                 z: this.game.player.position.z,
+                y: this.game.player.position.y,
+                z: this.game.player.position.z,
                 ry: this.game.cameraYaw,
+                pitch: this.game.cameraPitch || 0, // Sync Weapon Pitch
                 hp: this.game.health,
                 kills: this.game.playerKills,
                 lastUpdate: serverTimestamp()
@@ -422,7 +445,8 @@ export class Network {
                         hp: b.userData.hp,
                         maxHP: b.userData.maxHP || 100,
                         isAlly: b.userData.isAlly,
-                        name: b.userData.name
+                        name: b.userData.name,
+                        type: 'bot' // Ensure type is present
                     };
                 });
                 set(this.refs.bots, botData).catch(() => { });
