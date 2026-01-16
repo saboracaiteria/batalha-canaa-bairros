@@ -652,10 +652,10 @@ function setupGameInput() {
         let dx = 0;
         let dy = 0;
 
-        if (keys['w'] || keys['arrowup']) dy = -1;
-        if (keys['s'] || keys['arrowdown']) dy = 1;
-        if (keys['a'] || keys['arrowleft']) dx = -1;
-        if (keys['d'] || keys['arrowright']) dx = 1;
+        if (keys['w'] || keys['arrowup']) dy = 1;
+        if (keys['s'] || keys['arrowdown']) dy = -1;
+        if (keys['a'] || keys['arrowleft']) dx = 1;
+        if (keys['d'] || keys['arrowright']) dx = -1;
 
         // Normalize diagonal movement
         const length = Math.hypot(dx, dy);
@@ -833,7 +833,7 @@ function animate() {
     CharacterFactory.animateLimbs(charModel, delta, isMoving, isInAir, cameraPitch);
 
     if (isMoving) {
-        const moveAngle = Math.atan2(-inputX, inputY);
+        const moveAngle = Math.atan2(inputX, inputY);
         const dir = tempVec.set(0, 0, -1).applyAxisAngle(tempVec2.set(0, 1, 0), cameraYaw + moveAngle);
         const nextX = playerGroup.position.x + dir.x * speed;
         const nextZ = playerGroup.position.z + dir.z * speed;
@@ -1334,10 +1334,28 @@ function spawnBot(isAlly) {
 
     const botId = 'bot_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
     const bot = CharacterFactory.createHumanoid(isAlly ? 0x3b82f6 : 0xff0000, botId);
-    bot.position.set(x, 0, z);
+
+    // 🌍 TERRAIN SNAP: Find ground height
+    const raycaster = new THREE.Raycaster(new THREE.Vector3(x, 1000, z), new THREE.Vector3(0, -1, 0));
+
+    // Access global obstacle arrays
+    const obstaclesToCheck = [];
+    if (typeof solidObstacles !== 'undefined') obstaclesToCheck.push(...solidObstacles);
+    if (typeof groundObstacles !== 'undefined') obstaclesToCheck.push(...groundObstacles);
+
+    let spawnY = 100; // Default high
+    if (obstaclesToCheck.length > 0) {
+        const hits = raycaster.intersectObjects(obstaclesToCheck);
+        if (hits.length > 0) {
+            spawnY = hits[0].point.y;
+        }
+    }
+
+    bot.position.set(x, spawnY, z);
     bot.userData.isAlly = isAlly;
     bot.userData.hp = 100;
     bot.userData.maxHP = 100;
+    bot.userData.name = (isAlly ? "Aliado " : "Inimigo ") + Math.floor(Math.random() * 999);
     bot.userData.vel = new THREE.Vector3();
     bot.userData.lastKnownPos = new THREE.Vector3(x, 0, z); // Fix for crash at line 1306
     bot.userData.targetPos = new THREE.Vector3(x, 0, z); // Fix for crash at line 1364
@@ -1350,6 +1368,7 @@ function spawnBot(isAlly) {
     // Re-implementation below uses fg.geometry.translate so we can scale the MESH directly.
     bot.userData.hBar = hb.children[1]; // The Red Foreground
 
+    scene.add(bot); // CRITICAL FIX: Add to scene!
     bots.push(bot);
 }
 window.spawnBot = spawnBot;
@@ -1454,6 +1473,27 @@ function updateBots(deltaTime) {
         bot.rotation.y = THREE.MathUtils.lerp(bot.rotation.y, angleToTarget, 0.15 * fpsScale);
 
         const isBotMoving = bot.position.distanceTo(bot.userData.targetPos) > 3;
+
+        // --- GRAVITY & GROUND CHECK ---
+        ray.ray.origin.copy(bot.position).add(tempVec.set(0, 10, 0));
+        ray.ray.direction.set(0, -1, 0);
+        ray.far = 20;
+        // Check against solid obstacles and ground
+        const groundHits = ray.intersectObjects([...solidObstacles, ...groundObstacles]);
+        if (groundHits.length > 0) {
+            // Snap to ground
+            const groundY = groundHits[0].point.y;
+            // Simple lerp for smoothness, or snap if far
+            if (Math.abs(bot.position.y - groundY) > 0.5) {
+                bot.position.y = groundY;
+            } else {
+                bot.position.y = THREE.MathUtils.lerp(bot.position.y, groundY, 0.2 * fpsScale);
+            }
+        } else {
+            // Fall if no ground (simple gravity)
+            bot.position.y -= 0.5 * fpsScale;
+            if (bot.position.y < -50) bot.position.y = 100; // Respawn if void
+        }
 
         // Animation
         const botCycle = time * 10;

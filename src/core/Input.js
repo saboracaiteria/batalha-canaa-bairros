@@ -156,6 +156,12 @@ export class Input {
             case 'Space': this.buttons.jump = true; break;
             case 'ShiftLeft': this.buttons.run = true; break;
             case 'KeyE': this.buttons.grenade = true; break;
+
+            // WASD Movement
+            case 'KeyW': this.moveVector.y = 1; break;
+            case 'KeyS': this.moveVector.y = -1; break;
+            case 'KeyA': this.moveVector.x = -1; break;
+            case 'KeyD': this.moveVector.x = 1; break;
         }
     }
 
@@ -167,6 +173,12 @@ export class Input {
             case 'Space': this.buttons.jump = false; break;
             case 'ShiftLeft': this.buttons.run = false; break;
             case 'KeyE': this.buttons.grenade = false; break;
+
+            // WASD Stop
+            case 'KeyW': if (this.moveVector.y > 0) this.moveVector.y = 0; break;
+            case 'KeyS': if (this.moveVector.y < 0) this.moveVector.y = 0; break;
+            case 'KeyA': if (this.moveVector.x < 0) this.moveVector.x = 0; break;
+            case 'KeyD': if (this.moveVector.x > 0) this.moveVector.x = 0; break;
         }
     }
 
