@@ -36,18 +36,18 @@
     </style>
 
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <meta name="description" content="Residencial Canaã - Tactical Survival FPS Game optimizado para mobile">
-        <meta name="theme-color" content="#fcee0a">
-        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-        <meta http-equiv="Pragma" content="no-cache">
-        <meta http-equiv="Expires" content="0">
-        <link rel="icon" type="image/x-icon" href="./favicon.ico">
-        <title>Residencial Canaã - Tactical Survival</title>
-        <!-- IMPORT MAP FOR MODULES -->
-        <script type="importmap">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Residencial Canaã - Tactical Survival FPS Game optimizado para mobile">
+    <meta name="theme-color" content="#fcee0a">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link rel="icon" type="image/x-icon" href="./favicon.ico">
+    <title>Residencial Canaã - Tactical Survival</title>
+    <!-- IMPORT MAP FOR MODULES -->
+    <script type="importmap">
         {
             "imports": {
                 "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
@@ -58,15 +58,15 @@
             }
         }
     </script>
-        <script>
-            // 🚨 GLOBAL ERROR TRAP for Mobile Debugging
-            window.onerror = function (msg, url, line) {
-                alert("ERRO GLOBAL CRÍTICO:\n" + msg + "\nArquivo: " + url + "\nLinha: " + line);
-                return false;
-            };
-        </script>
-        <!-- IMPORT MAP (Fix for Unbundled/Render Environments) -->
-        <script type="importmap">
+    <script>
+        // 🚨 GLOBAL ERROR TRAP for Mobile Debugging
+        window.onerror = function (msg, url, line) {
+            alert("ERRO GLOBAL CRÍTICO:\n" + msg + "\nArquivo: " + url + "\nLinha: " + line);
+            return false;
+        };
+    </script>
+    <!-- IMPORT MAP (Fix for Unbundled/Render Environments) -->
+    <script type="importmap">
         {
             "imports": {
                 "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
@@ -78,365 +78,365 @@
         }
     </script>
 
-        <!-- ES Module Import with Error Handler -->
-        <script type="module" src="./src/main.js?v=2.2"
-            onerror="alert('ERRO DE CARREGAMENTO! O arquivo do jogo não foi encontrado.\n\nISSO É UM ERRO DE CACHE!\n\nPor favor, limpe o cache do navegador ou abra em Aba Anônima.')">
-            </script>
-        <style>
-            :root {
-                --ui-primary: #fcee0a;
-                --ui-cyan: #00f3ff;
-                --ui-red: #ff003c;
-                --ui-orange: #ff4400;
-                --ui-bg: #0a0a0a;
-                --ui-glass: rgba(0, 0, 0, 0.6);
-                --ui-border: rgba(255, 255, 255, 0.3);
-            }
+    <!-- ES Module Import with Error Handler -->
+    <script type="module" src="./src/main.js?v=2.2"
+        onerror="alert('ERRO DE CARREGAMENTO! O arquivo do jogo não foi encontrado.\n\nISSO É UM ERRO DE CACHE!\n\nPor favor, limpe o cache do navegador ou abra em Aba Anônima.')">
+        </script>
+    <style>
+        :root {
+            --ui-primary: #fcee0a;
+            --ui-cyan: #00f3ff;
+            --ui-red: #ff003c;
+            --ui-orange: #ff4400;
+            --ui-bg: #0a0a0a;
+            --ui-glass: rgba(0, 0, 0, 0.6);
+            --ui-border: rgba(255, 255, 255, 0.3);
+        }
 
-            body {
-                margin: 0;
-                overflow: hidden;
-                /* Global overflow hidden to prevent "bounce" */
-                background: var(--ui-bg);
-                font-family: 'Segoe UI', Roboto, sans-serif;
-                user-select: none;
-                -webkit-touch-callout: none;
-                -webkit-user-select: none;
-                -webkit-tap-highlight-color: transparent;
-            }
+        body {
+            margin: 0;
+            overflow: hidden;
+            /* Global overflow hidden to prevent "bounce" */
+            background: var(--ui-bg);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-            /* Game Layer: No Touch Actions (No Scroll/Zoom) */
-            #game-container,
-            #hud {
-                touch-action: none;
-            }
+        /* Game Layer: No Touch Actions (No Scroll/Zoom) */
+        #game-container,
+        #hud {
+            touch-action: none;
+        }
 
-            /* FONTS & UTILS */
-            .cyber-text {
-                text-transform: uppercase;
-                font-weight: 900;
-                font-style: italic;
-            }
+        /* FONTS & UTILS */
+        .cyber-text {
+            text-transform: uppercase;
+            font-weight: 900;
+            font-style: italic;
+        }
 
-            /* SCREENS */
-            #game-container {
-                position: absolute;
-                inset: 0;
-                z-index: 1;
-                display: none;
-                background: #000;
-                /* Fixed: Black background to avoid blue bars */
-            }
+        /* SCREENS */
+        #game-container {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            display: none;
+            background: #000;
+            /* Fixed: Black background to avoid blue bars */
+        }
 
-            canvas {
-                display: block;
-                width: 100%;
-                height: 100%;
-                outline: none;
-            }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            outline: none;
+        }
 
+        .overlay-screen {
+            position: fixed;
+            inset: 0;
+            background: black;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            /* Start from top to allow scroll */
+            color: white;
+            z-index: 1000;
+            text-align: center;
+            padding: 40px 20px;
+            /* More padding */
+            overflow-y: auto;
+            /* Allow vertical scroll */
+            -webkit-overflow-scrolling: touch;
+            /* Momentum scroll */
+        }
+
+        /* PAUSE MENU STYLE from Screenshot */
+        .pause-title {
+            font-size: 3rem;
+            color: var(--ui-primary);
+            text-shadow: 4px 4px 0px var(--ui-red);
+            margin-bottom: 30px;
+            letter-spacing: 5px;
+            flex-shrink: 0;
+            /* Prevent shrinking */
+        }
+
+        .pause-option {
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 15px;
+            text-align: left;
+            flex-shrink: 0;
+        }
+
+        .pause-btn-row {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            /* Horizontal Scroll for Tabs */
+            white-space: nowrap;
+            padding-bottom: 5px;
+            /* Space for scrollbar if any */
+            flex-shrink: 0;
+        }
+
+        .pause-btn {
+            flex: 1;
+            padding: 10px;
+            /* Reduced from 15px */
+            border: none;
+            color: white;
+            font-weight: 900;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            /* Reduced from 0.9rem */
+            clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+            cursor: pointer;
+            /* Default Blue */
+            background: var(--ui-cyan);
+            color: black;
+        }
+
+        .pause-btn.orange {
+            background: var(--ui-orange);
+            color: white;
+        }
+
+        .pause-btn.yellow {
+            background: var(--ui-primary);
+            color: black;
+        }
+
+        .pause-btn.red {
+            background: var(--ui-red);
+            color: white;
+        }
+
+        .pause-btn.dark {
+            background: #333;
+            color: #fff;
+        }
+
+        .pause-link {
+            color: var(--ui-red);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+
+        /* HUD STYLES from Screenshot */
+        #hud {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
+
+        .hud-el {
+            position: absolute;
+            pointer-events: auto;
+            touch-action: none;
+            user-select: none;
+        }
+
+        /* Top Banner */
+        #zone-banner {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 255, 0, 0.8);
+            color: black;
+            padding: 5px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            white-space: nowrap;
+        }
+
+        /* Top Right Icons */
+        #top-icons {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        /* Stats Box */
+        #stats-box {
+            position: absolute;
+            top: 20px;
+            right: 80px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: right;
+            color: white;
+            font-size: 12px;
+            line-height: 1.4;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Circular Buttons */
+        .hud-btn-circle {
+            background: rgba(0, 0, 0, 0.6);
+            /* Darker background */
+            border: 2px solid #fff;
+            /* White standard border, overridden by style */
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: bold;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Dashed Circle for "Shoot" */
+        .dashed-border {
+            border-style: dashed !important;
+        }
+
+        /* Health Bar (Bottom Center) */
+        #health-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            pointer-events: none;
+        }
+
+        .bar-frame {
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.2s;
+        }
+
+        /* Joypad */
+        #joy-zone {
+            bottom: 50px;
+            left: 50px;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 0, 0.3);
+            /* Yellow tinge */
+            background: radial-gradient(circle, rgba(255, 255, 0, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+            touch-action: none;
+            display: none;
+            /* DYNAMIC JOYSTICK: Hidden by default */
+            /* CRITICAL: Prevent browser scroll on joystick */
+        }
+
+        #joy-knob {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px white;
+            pointer-events: none;
+            /* Let touches pass to zone */
+        }
+
+        /* MOBILE LANDSCAPE COMPACT FIX */
+        @media (max-width: 900px) and (orientation: landscape) {
             .overlay-screen {
-                position: fixed;
-                inset: 0;
-                background: black;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: flex-start;
-                /* Start from top to allow scroll */
-                color: white;
-                z-index: 1000;
-                text-align: center;
-                padding: 40px 20px;
-                /* More padding */
-                overflow-y: auto;
-                /* Allow vertical scroll */
-                -webkit-overflow-scrolling: touch;
-                /* Momentum scroll */
+                padding: 5px !important;
+                justify-content: center !important;
             }
 
-            /* PAUSE MENU STYLE from Screenshot */
             .pause-title {
-                font-size: 3rem;
-                color: var(--ui-primary);
-                text-shadow: 4px 4px 0px var(--ui-red);
-                margin-bottom: 30px;
-                letter-spacing: 5px;
-                flex-shrink: 0;
-                /* Prevent shrinking */
+                font-size: 1.5rem !important;
+                margin-bottom: 2px !important;
+                margin-top: 0 !important;
             }
 
             .pause-option {
-                width: 100%;
-                max-width: 500px;
-                margin-bottom: 15px;
-                text-align: left;
-                flex-shrink: 0;
+                margin-bottom: 2px !important;
+                max-width: 400px;
             }
 
-            .pause-btn-row {
-                display: flex;
-                gap: 15px;
-                width: 100%;
-                max-width: 500px;
-                margin-bottom: 20px;
-                overflow-x: auto;
-                /* Horizontal Scroll for Tabs */
-                white-space: nowrap;
-                padding-bottom: 5px;
-                /* Space for scrollbar if any */
-                flex-shrink: 0;
+            .pause-label {
+                font-size: 0.7rem !important;
+                margin-bottom: 1px !important;
             }
 
             .pause-btn {
-                flex: 1;
-                padding: 10px;
-                /* Reduced from 15px */
-                border: none;
-                color: white;
-                font-weight: 900;
-                text-transform: uppercase;
-                font-size: 0.8rem;
-                /* Reduced from 0.9rem */
-                clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-                cursor: pointer;
-                /* Default Blue */
-                background: var(--ui-cyan);
-                color: black;
+                padding: 4px 10px !important;
+                font-size: 0.7rem !important;
+                margin: 0 !important;
             }
 
-            .pause-btn.orange {
-                background: var(--ui-orange);
-                color: white;
+            .pause-btn-row {
+                margin-bottom: 5px !important;
+                gap: 5px !important;
             }
 
-            .pause-btn.yellow {
-                background: var(--ui-primary);
-                color: black;
+            input,
+            select,
+            .cyber-slider {
+                padding: 2px 5px !important;
+                font-size: 0.8rem !important;
+                height: 25px !important;
             }
 
-            .pause-btn.red {
-                background: var(--ui-red);
-                color: white;
+            /* Start Screen specific */
+            #start-screen .pause-title {
+                font-size: 1.8rem !important;
             }
-
-            .pause-btn.dark {
-                background: #333;
-                color: #fff;
-            }
-
-            .pause-link {
-                color: var(--ui-red);
-                text-decoration: none;
-                font-size: 0.8rem;
-                font-weight: bold;
-                display: block;
-                margin-bottom: 20px;
-                cursor: pointer;
-            }
-
-
-            /* HUD STYLES from Screenshot */
-            #hud {
-                position: absolute;
-                inset: 0;
-                pointer-events: none;
-                z-index: 100;
-                display: none;
-            }
-
-            .hud-el {
-                position: absolute;
-                pointer-events: auto;
-                touch-action: none;
-                user-select: none;
-            }
-
-            /* Top Banner */
-            #zone-banner {
-                position: absolute;
-                top: 10px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(0, 255, 0, 0.8);
-                color: black;
-                padding: 5px 20px;
-                border-radius: 20px;
-                font-weight: bold;
-                font-size: 12px;
-                border: 2px solid #fff;
-                box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-                white-space: nowrap;
-            }
-
-            /* Top Right Icons */
-            #top-icons {
-                position: absolute;
-                top: 20px;
-                right: 20px;
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-                pointer-events: auto;
-            }
-
-            .icon-btn {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                background: rgba(0, 0, 0, 0.5);
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-size: 20px;
-            }
-
-            /* Stats Box */
-            #stats-box {
-                position: absolute;
-                top: 20px;
-                right: 80px;
-                background: rgba(0, 0, 0, 0.6);
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                border-radius: 8px;
-                padding: 10px;
-                text-align: right;
-                color: white;
-                font-size: 12px;
-                line-height: 1.4;
-                backdrop-filter: blur(4px);
-            }
-
-            /* Circular Buttons */
-            .hud-btn-circle {
-                background: rgba(0, 0, 0, 0.6);
-                /* Darker background */
-                border: 2px solid #fff;
-                /* White standard border, overridden by style */
-                border-radius: 50%;
-                color: white;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                text-align: center;
-                font-weight: bold;
-                backdrop-filter: blur(4px);
-                box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-            }
-
-            /* Dashed Circle for "Shoot" */
-            .dashed-border {
-                border-style: dashed !important;
-            }
-
-            /* Health Bar (Bottom Center) */
-            #health-container {
-                position: absolute;
-                bottom: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 300px;
-                display: flex;
-                flex-direction: column;
-                gap: 5px;
-                pointer-events: none;
-            }
-
-            .bar-frame {
-                width: 100%;
-                height: 10px;
-                background: rgba(0, 0, 0, 0.8);
-                border-radius: 5px;
-                overflow: hidden;
-                border: 1px solid rgba(255, 255, 255, 0.2);
-            }
-
-            .bar-fill {
-                height: 100%;
-                transition: width 0.2s;
-            }
-
-            /* Joypad */
-            #joy-zone {
-                bottom: 50px;
-                left: 50px;
-                width: 140px;
-                height: 140px;
-                border-radius: 50%;
-                border: 2px solid rgba(255, 255, 0, 0.3);
-                /* Yellow tinge */
-                background: radial-gradient(circle, rgba(255, 255, 0, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
-                touch-action: none;
-                display: none;
-                /* DYNAMIC JOYSTICK: Hidden by default */
-                /* CRITICAL: Prevent browser scroll on joystick */
-            }
-
-            #joy-knob {
-                width: 50px;
-                height: 50px;
-                background: white;
-                border-radius: 50%;
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                box-shadow: 0 0 10px white;
-                pointer-events: none;
-                /* Let touches pass to zone */
-            }
-
-            /* MOBILE LANDSCAPE COMPACT FIX */
-            @media (max-width: 900px) and (orientation: landscape) {
-                .overlay-screen {
-                    padding: 5px !important;
-                    justify-content: center !important;
-                }
-
-                .pause-title {
-                    font-size: 1.5rem !important;
-                    margin-bottom: 2px !important;
-                    margin-top: 0 !important;
-                }
-
-                .pause-option {
-                    margin-bottom: 2px !important;
-                    max-width: 400px;
-                }
-
-                .pause-label {
-                    font-size: 0.7rem !important;
-                    margin-bottom: 1px !important;
-                }
-
-                .pause-btn {
-                    padding: 4px 10px !important;
-                    font-size: 0.7rem !important;
-                    margin: 0 !important;
-                }
-
-                .pause-btn-row {
-                    margin-bottom: 5px !important;
-                    gap: 5px !important;
-                }
-
-                input,
-                select,
-                .cyber-slider {
-                    padding: 2px 5px !important;
-                    font-size: 0.8rem !important;
-                    height: 25px !important;
-                }
-
-                /* Start Screen specific */
-                #start-screen .pause-title {
-                    font-size: 1.8rem !important;
-                }
-            }
-        </style>
-    </head>
+        }
+    </style>
+</head>
 
 <body>
     <!-- Original Crosshair Style -->
@@ -603,7 +603,29 @@
         </div>
 
         <div style="margin-top: 20px; font-size: 10px; color: #555;">OPTIMIZED v2.0 (MOBILE FIXED)</div>
+        <button class="pause-btn dark" style="margin-top:10px; font-size: 0.7rem; padding: 5px;"
+            onclick="toggleNetDebug()">🛠️ DEBUG REDE</button>
     </div>
+
+    <!-- NETWORK DEBUG OVERLAY -->
+    <div id="net-debug"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; display: none; color: lime; font-family: monospace; padding: 10px; overflow: auto;">
+        <h3>FIREBASE DEBUG MONITOR</h3>
+        <button style="background:red; color:white; border:none; padding:10px; width:100%; margin-bottom:10px;"
+            onclick="toggleNetDebug()">FECHAR</button>
+        <div>STATUS: <span id="debug-status">Desconectado</span></div>
+        <div>PATH: <span id="debug-path">...</span></div>
+        <hr>
+        <pre id="debug-content" style="white-space: pre-wrap; word-break: break-all;">Aguardando dados...</pre>
+    </div>
+
+    <script>
+        function toggleNetDebug() {
+            const el = document.getElementById('net-debug');
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+    </script>
+
 
 
     <!-- PAUSE MENU (In-Game Overlay) -->

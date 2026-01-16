@@ -48,6 +48,7 @@ export class Network {
                         console.log('✅ Connected as:', user.uid);
                         alert('CONECTADO! UID: ' + user.uid.substr(0, 4)); // DEBUG MOBILE
                         this.setupRefs();
+                        this.enableDebugMonitor(); // START DEBUG
                         // Presence
                         const presenceRef = ref(this.db, `artifacts/${APP_ID}/public/data/${this.roomName}/${user.uid}`);
                         // Default status
@@ -129,6 +130,9 @@ export class Network {
         this.refs.nades = ref(this.db, `${root}/${this.roomName}_nades`);
         this.refs.bots = ref(this.db, `${root}/${this.roomName}_bots`);
         this.refs.registry = ref(this.db, `${root}/room_registry/canaa`);
+
+        // Debug
+        this.debugRef = ref(this.db, `${root}`);
 
         if (this.currentUser) {
             this.refs.myDoc = ref(this.db, `${root}/${this.roomName}/${this.currentUser.uid}`);
@@ -212,6 +216,31 @@ export class Network {
             }
 
             this.updateLeaderboard(data);
+
+            // Leader updates Player Count in Registry
+            if (this.isLeader) {
+                const count = Object.keys(data).length;
+                update(this.refs.registry, {
+                    playerCount: count,
+                    lastUpdate: serverTimestamp()
+                }).catch(() => { });
+            }
+        });
+    }
+
+    // DEBUG PANEL LISTENER
+    enableDebugMonitor() {
+        const debugPathEl = document.getElementById('debug-path');
+        const debugContentEl = document.getElementById('debug-content');
+        if (debugPathEl) debugPathEl.innerText = this.debugRef.toString();
+
+        onValue(this.debugRef, (snap) => {
+            const val = snap.val();
+            if (debugContentEl) {
+                debugContentEl.innerText = JSON.stringify(val, null, 2);
+            }
+            const statusEl = document.getElementById('debug-status');
+            if (statusEl) statusEl.innerText = "ATUALIZADO: " + new Date().toLocaleTimeString();
         });
     }
 
