@@ -123,7 +123,7 @@ export class Network {
             const countEl = document.getElementById('active-count');
 
             if (statusEl) {
-                statusEl.innerText = "CONECTADO: AGUARDANDO...";
+                statusEl.innerText = "CONECTADO: ATIVO (Jogando)";
                 statusEl.style.color = '#00ff00';
             }
 
