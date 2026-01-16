@@ -1607,6 +1607,84 @@ window.syncBot = (id, data) => {
 };
 
 // Initialize game
+
+// ...
+/* In Animate Loop, add:
+   if (window.gameNetwork) window.gameNetwork.update(delta);
+*/
+
+// 🖱️ FIX MOBILE TOUCH INTERACTIONS
+// Ensure buttons trigger on touchstart if click fails
+setTimeout(() => {
+    const bindTouch = (selector, fn) => {
+        document.querySelectorAll(selector).forEach(btn => {
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent ghost clicks
+                fn();
+            }, { passive: false });
+        });
+    };
+
+    // Bind Start Button specially if needed, but 'onclick' typically works if not blocked.
+    // However, let's force the Tab Switchers and Start Button to react to touch
+    document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('touchstart', function (e) {
+            // Just let the click happen naturally usually, but with touch-action:none...
+            // It's safer to NOT e.preventDefault() here unless we manually trigger click.
+            // We will just leave standard behavior but Ensure initGame is robust.
+        }, { passive: true });
+    });
+
+    console.log('📱 Mobile Touch Events Initialized');
+}, 1000);
+
+// Menu handlers (UPDATED SAFE)
+window.switchTab = (tab) => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    const activeBtn = document.querySelector(`[onclick*="${tab}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    const tPlay = document.getElementById('tab-play');
+    const tMulti = document.getElementById('tab-multi');
+    const tOpts = document.getElementById('tab-opts');
+
+    if (tPlay) tPlay.style.display = 'none';
+    if (tMulti) tMulti.style.display = 'none';
+    if (tOpts) tOpts.style.display = 'none';
+
+    const target = document.getElementById('tab-' + tab);
+    if (target) target.style.display = 'block';
+
+    // 🌐 LOBBY CONNECTION (Fix for "Not Connecting")
+    if (tab === 'multi') {
+        ensureNetwork().then(net => {
+            if (net.listenToPublicPresence) net.listenToPublicPresence();
+        });
+    }
+};
+
+window.setMode = (mode, btn) => {
+    currentGameMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+};
+
+
+// 🌐 NETWORK SINGLETON & INITIALIZER
+let network = null;
+
+async function ensureNetwork() {
+    if (network) return network;
+
+    // Initialize without game first (Lobby Mode)
+    network = new Network(null);
+    window.gameNetwork = network;
+
+    await network.connect();
+    return network;
+}
+
+
 // Initialize game
 window.initGame = (mode) => {
     // VISUAL FEEDBACK FOR CLICK/TOUCH
@@ -1666,9 +1744,8 @@ window.initGame = (mode) => {
         initHudEditor();
         loadHudLayout(); // Load saved positions
 
-        // 🌐 INIT MULTIPLAYER
-        // 🌐 INIT MULTIPLAYER
-        const network = new Network({
+        // PREPARE GAME INTERFACE
+        const gameInterface = {
             scene,
             player: playerGroup,
             bots,
@@ -1678,25 +1755,22 @@ window.initGame = (mode) => {
             clearBots: window.clearBots,
             cleanupBots: window.cleanupBots,
 
-            // DYNAMIC ACCESSORS (Fixes "Frozen Value" Bug)
+            // DYNAMIC ACCESSORS
             get isPlaying() { return isPlaying; },
             get health() { return health; },
             get playerKills() { return playerKills; },
             get cameraYaw() { return cameraYaw; },
             toggleBots: (val) => { if (val) setupBotsPeriphery(); }
-        });
-        // NOTE: Above object is a mock game reference. Ideally we pass 'this' but strict mode prevents it. 
-        // We will assign a global 'gameInstance' reference for cleaner access later.
-        window.gameNetwork = network; // Expose for debugging
-        window.gameNetwork = network; // Expose for debugging
+        };
 
         isPlaying = true;
 
         if (mode === 'multi') {
-            // 🌐 MULTIPLAYER: Connect first, then start sync
-            network.connect().then(() => {
-                if (network.listenToPublicPresence) network.listenToPublicPresence();
-                network.startMultiplayer();
+            // 🌐 MULTIPLAYER: Reuse existing network or connect
+            ensureNetwork().then(net => {
+                net.setGame(gameInterface); // Inject Game logic now
+                if (net.listenToPublicPresence) net.listenToPublicPresence();
+                net.startMultiplayer();
             });
         } else {
             // 👤 SINGLEPLAYER: Offline Mode
@@ -1708,60 +1782,6 @@ window.initGame = (mode) => {
         console.error('❌ ERRO CRÍTICO AO INICIAR JOGO:', e);
         alert('ERRO AO INICIAR: ' + e.message); // Visual feedback for mobile user
     }
-};
-
-// ...
-/* In Animate Loop, add:
-   if (window.gameNetwork) window.gameNetwork.update(delta);
-*/
-
-// 🖱️ FIX MOBILE TOUCH INTERACTIONS
-// Ensure buttons trigger on touchstart if click fails
-setTimeout(() => {
-    const bindTouch = (selector, fn) => {
-        document.querySelectorAll(selector).forEach(btn => {
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault(); // Prevent ghost clicks
-                fn();
-            }, { passive: false });
-        });
-    };
-
-    // Bind Start Button specially if needed, but 'onclick' typically works if not blocked.
-    // However, let's force the Tab Switchers and Start Button to react to touch
-    document.querySelectorAll('button').forEach(btn => {
-        btn.addEventListener('touchstart', function (e) {
-            // Just let the click happen naturally usually, but with touch-action:none...
-            // It's safer to NOT e.preventDefault() here unless we manually trigger click.
-            // We will just leave standard behavior but Ensure initGame is robust.
-        }, { passive: true });
-    });
-
-    console.log('📱 Mobile Touch Events Initialized');
-}, 1000);
-
-// Menu handlers (UPDATED SAFE)
-window.switchTab = (tab) => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    const activeBtn = document.querySelector(`[onclick*="${tab}"]`);
-    if (activeBtn) activeBtn.classList.add('active');
-
-    const tPlay = document.getElementById('tab-play');
-    const tMulti = document.getElementById('tab-multi');
-    const tOpts = document.getElementById('tab-opts');
-
-    if (tPlay) tPlay.style.display = 'none';
-    if (tMulti) tMulti.style.display = 'none';
-    if (tOpts) tOpts.style.display = 'none';
-
-    const target = document.getElementById('tab-' + tab);
-    if (target) target.style.display = 'block';
-};
-
-window.setMode = (mode, btn) => {
-    currentGameMode = mode;
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
 };
 
 // ♻️ END OF LEGACY LOGIC

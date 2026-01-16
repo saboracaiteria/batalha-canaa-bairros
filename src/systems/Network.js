@@ -32,8 +32,14 @@ export class Network {
         this.isMultiplayer = false;
         this.teamId = 1;
 
+        this.teamId = 1;
+
         // Binds
         this.setupRefs = this.setupRefs.bind(this);
+    }
+
+    setGame(game) {
+        this.game = game;
     }
 
     async connect() {
