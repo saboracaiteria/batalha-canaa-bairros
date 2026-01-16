@@ -5,7 +5,7 @@ import { ParticleSystem } from './systems/Particle.js';
 import { TrainingArena } from './world/TrainingArena.js'; // 🏟️ NEW MAP
 import { InputSystem } from './systems/InputSystem.js'; // 🎮 NEW INPUT SYSTEM
 import { BulletSystem } from './systems/BulletSystem.js'; // 🔫 NEW BULLET SYSTEM
-import { Network } from './systems/Network.js'; // 🌐 PORTED MULTIPLAYER
+// Network imported dynamically to prevent offline crashes
 import { openHudEditor, initHudEditor, loadHudLayout } from './ui/HudEditor.js'; // HUD customization
 import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
@@ -1717,12 +1717,23 @@ let network = null;
 async function ensureNetwork() {
     if (network) return network;
 
-    // Initialize without game first (Lobby Mode)
-    network = new Network(null);
-    window.gameNetwork = network;
+    try {
+        console.log("🌐 Loading Network Module...");
+        // Dynamic Import to prevent crash if Firebase/Internet is down
+        const module = await import('./systems/Network.js');
+        const Network = module.Network;
 
-    await network.connect();
-    return network;
+        // Initialize without game first (Lobby Mode)
+        network = new Network(null);
+        window.gameNetwork = network;
+
+        await network.connect();
+        return network;
+    } catch (e) {
+        console.error("⚠️ Failed to load Multiplayer module:", e);
+        alert("Modo Online indisponível: Falha na conexão ou carregamento.");
+        return null;
+    }
 }
 
 
@@ -1809,9 +1820,14 @@ window.initGame = (mode) => {
         if (mode === 'multi') {
             // 🌐 MULTIPLAYER: Reuse existing network or connect
             ensureNetwork().then(net => {
-                net.setGame(gameInterface); // Inject Game logic now
-                if (net.listenToPublicPresence) net.listenToPublicPresence();
-                net.startMultiplayer();
+                if (net) {
+                    net.setGame(gameInterface); // Inject Game logic now
+                    if (net.listenToPublicPresence) net.listenToPublicPresence();
+                    net.startMultiplayer();
+                } else {
+                    console.log("⚠️ Network unavailable, falling back to Singleplayer Bots");
+                    setupBotsPeriphery();
+                }
             });
         } else {
             // 👤 SINGLEPLAYER: Offline Mode

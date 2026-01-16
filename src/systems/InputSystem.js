@@ -246,12 +246,16 @@ export class InputSystem {
         document.addEventListener('touchend', endTouch, { passive: false });
         document.addEventListener('touchcancel', endTouch, { passive: false });
 
-        // Shoot button
-        shootButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (this.game.weapon) this.game.weapon.shoot();
-        }, { passive: false });
+        // Shoot button HANDLED IN MAIN.JS VIA HUD ELEMENTS
+        /* 
+        if (shootButton) {
+            shootButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.game.weapon) this.game.weapon.shoot();
+            }, { passive: false });
+        }
+        */
     }
 
     updateJoystickPosition(touch, joystick, joystickKnob) {
