@@ -279,6 +279,14 @@
             justify-content: center;
             color: white;
             font-size: 20px;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .icon-btn:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.3);
         }
 
         /* Stats Box */
@@ -659,9 +667,9 @@
 
         <!-- Top Right Icons -->
         <div id="top-icons">
-            <div class="icon-btn" onclick="togglePause()">⚙️</div> <!-- Settings/Pause -->
-            <div class="icon-btn" onclick="toggleCamera()">👁️</div> <!-- Free Look / Toggle Cam -->
-            <div class="icon-btn" onclick="toggleFullScreen()">⛶</div> <!-- Fullscreen -->
+            <div class="icon-btn" id="btn-settings">⚙️</div> <!-- Settings/Pause -->
+            <div class="icon-btn" id="btn-camera">👁️</div> <!-- Free Look / Toggle Cam -->
+            <div class="icon-btn" id="btn-fullscreen">⛶</div> <!-- Fullscreen -->
         </div>
 
         <!-- Stats Box -->
@@ -803,6 +811,66 @@
                 }
             }
         }
+
+        // Mobile-compatible touch event handlers for HUD buttons
+        (function initMobileButtons() {
+            function addMobileHandler(elementId, handler) {
+                const el = document.getElementById(elementId);
+                if (!el) return;
+
+                // Prevent double-firing by tracking touch state
+                let touched = false;
+
+                el.addEventListener('touchstart', function (e) {
+                    e.preventDefault();
+                    touched = true;
+                }, { passive: false });
+
+                el.addEventListener('touchend', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (touched) {
+                        touched = false;
+                        handler();
+                    }
+                }, { passive: false });
+
+                // Also add click for PC
+                el.addEventListener('click', function (e) {
+                    if (!touched) { // Only fire if not already handled by touch
+                        handler();
+                    }
+                });
+            }
+
+            // Wait for DOM to be ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setupButtons);
+            } else {
+                setupButtons();
+            }
+
+            function setupButtons() {
+                // Settings button
+                addMobileHandler('btn-settings', function () {
+                    togglePause();
+                });
+
+                // Camera toggle button
+                addMobileHandler('btn-camera', function () {
+                    if (typeof toggleCamera === 'function') {
+                        toggleCamera();
+                    } else {
+                        console.log('toggleCamera not defined');
+                    }
+                });
+
+                // Fullscreen button
+                addMobileHandler('btn-fullscreen', function () {
+                    toggleFullScreen();
+                });
+            }
+        })();
     </script>
 </body>
 

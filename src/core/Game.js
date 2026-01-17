@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Loop } from './Loop.js';
 import { Input } from './Input.js';
+import soundManager from './SoundManager.js';
 import { World } from '../world/World.js';
 import { Physics } from '../systems/Physics.js';
 import { Audio } from '../systems/Audio.js';
@@ -31,6 +32,7 @@ export class Game {
         this.audio = null;
         this.network = null;
         this.hud = null;
+        this.soundManager = soundManager;
 
         // Game state
         this.isPlaying = false;
@@ -62,6 +64,9 @@ export class Game {
         this.audio = new Audio();
         this.physics = new Physics(this);
         this.hud = new HUD(this);
+
+        // Initialize sound manager
+        await this.soundManager.init();
 
         console.log('✅ Game initialized successfully');
 

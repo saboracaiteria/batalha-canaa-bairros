@@ -135,7 +135,7 @@ export class BulletSystem {
         // Impact effect
         if (this.game.particleSystem) {
             // Determine surface type if possible, default to generic
-            this.game.particleSystem.spawnExplosion(hit.point, 0xcccccc);
+            // this.game.particleSystem.spawnExplosion(hit.point, 0xcccccc); // REMOVED: User requested removal of white particles
         }
 
         // Bullet hole decal (simplified)

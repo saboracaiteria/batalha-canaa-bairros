@@ -506,7 +506,7 @@ function setupThree() {
                     health -= (bullet.damage || 10);
                     lastDamageTime = clock.getElapsedTime();
                     playSfx('hit');
-                    if (particleSystem) particleSystem.spawnBlood(camera.position, new THREE.Vector3(0, 0, 1), 5); // Screen blood?
+                    // if (particleSystem) particleSystem.spawnBlood(camera.position, new THREE.Vector3(0, 0, 1), 5); // Screen blood? -- DISABLED
                 }
                 return;
             }
@@ -532,7 +532,7 @@ function setupThree() {
 
                 // Visuals
                 if (particleSystem) {
-                    particleSystem.spawnBlood(hit.point, hit.face.normal, isHeadshot ? 8 : 5);
+                    // particleSystem.spawnBlood(hit.point, hit.face.normal, isHeadshot ? 8 : 5); // DISABLED - Too much visual clutter
                 }
                 playSfx('hit');
 
