@@ -1804,7 +1804,7 @@ window.initGame = (mode) => {
     if (window.loadHudLayout) window.loadHudLayout();
 
     // 🔊 RESUME AUDIO CONTEXT (Mobile Requirement)
-    if (audioCtx.state === 'suspended') {
+    if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume().then(() => {
             console.log('AudioContext resumed!');
         }).catch(err => console.error(err));
@@ -1884,6 +1884,10 @@ window.initGame = (mode) => {
 
         // 🎵 START BACKGROUND MUSIC (with retry for mobile autoplay restrictions)
         async function startBGM() {
+            if (!soundManager) {
+                console.warn('⚠️ SoundManager não disponível');
+                return;
+            }
             try {
                 await soundManager.init();
                 soundManager.playBGM('gameplay');
@@ -1891,7 +1895,7 @@ window.initGame = (mode) => {
             } catch (e) {
                 console.warn('Sound init failed, retrying in 2s:', e);
                 setTimeout(() => {
-                    soundManager.playBGM('gameplay');
+                    if (soundManager) soundManager.playBGM('gameplay');
                 }, 2000);
             }
         }
