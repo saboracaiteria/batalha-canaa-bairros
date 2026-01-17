@@ -5,6 +5,7 @@ import { ParticleSystem } from './systems/Particle.js';
 import { TrainingArena } from './world/TrainingArena.js'; // 🏟️ NEW MAP
 import { InputSystem } from './systems/InputSystem.js'; // 🎮 NEW INPUT SYSTEM
 import { BulletSystem } from './systems/BulletSystem.js'; // 🔫 NEW BULLET SYSTEM
+import soundManager from './core/SoundManager.js'; // 🔊 SOUND MANAGER
 // Network imported dynamically to prevent offline crashes
 import { openHudEditor, initHudEditor, loadHudLayout } from './ui/HudEditor.js'; // HUD customization
 import * as THREE from 'three';
@@ -17,6 +18,9 @@ import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
 
 // 🌍 EXPOSE FACTORY FOR NETWORK
 window.createHumanoid = (color, id) => CharacterFactory.createHumanoid(color, id);
+
+// 🔊 EXPOSE SOUND MANAGER GLOBALLY
+window.soundManager = soundManager;
 
 console.log(`
 ╔═══════════════════════════════════════════════════╗
@@ -1816,6 +1820,19 @@ window.initGame = (mode) => {
         };
 
         isPlaying = true;
+
+        // 🔊 Export isRunning globally for mobile button
+        window.isRunning = isRunning;
+        Object.defineProperty(window, 'isRunning', {
+            get: () => isRunning,
+            set: (val) => { isRunning = val; }
+        });
+
+        // 🎵 START BACKGROUND MUSIC
+        soundManager.init().then(() => {
+            soundManager.playBGM('gameplay');
+            console.log('🎵 Background music started!');
+        }).catch(e => console.warn('Sound init failed:', e));
 
         if (mode === 'multi') {
             // 🌐 MULTIPLAYER: Reuse existing network or connect

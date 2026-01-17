@@ -629,34 +629,47 @@
         <h1 class="pause-title">PAUSA</h1>
 
         <div class="pause-option">
-            <div class="pause-label">// SENSIBILIDADE</div>
+            <div class="pause-label">// SENSIBILIDADE: <span id="val-pause-sens">55</span></div>
             <input type="range" class="cyber-slider" id="pause-sens" min="1" max="100" value="55"
-                oninput="updateCfg('sens', this.value)">
+                oninput="document.getElementById('val-pause-sens').innerText=this.value; updateCfg('sens', this.value)">
         </div>
 
         <div class="pause-option">
-            <div class="pause-label">// FOV</div>
+            <div class="pause-label">// FOV: <span id="val-pause-fov">75</span></div>
             <input type="range" class="cyber-slider" id="pause-fov" min="40" max="100" value="75"
-                oninput="updateCfg('fov', this.value)">
+                oninput="document.getElementById('val-pause-fov').innerText=this.value; updateCfg('fov', this.value)">
+        </div>
+
+        <div class="pause-option">
+            <div class="pause-label">// VOLUME MÚSICA: <span id="val-bgm-vol">30</span>%</div>
+            <input type="range" class="cyber-slider" id="cfg-bgm-volume" min="0" max="100" value="30"
+                oninput="document.getElementById('val-bgm-vol').innerText=this.value; if(window.soundManager) window.soundManager.setBGMVolume(this.value/100)">
+        </div>
+
+        <div class="pause-option">
+            <div class="pause-label">// VOLUME EFEITOS: <span id="val-sfx-vol">50</span>%</div>
+            <input type="range" class="cyber-slider" id="cfg-sfx-volume" min="0" max="100" value="50"
+                oninput="document.getElementById('val-sfx-vol').innerText=this.value; if(window.soundManager) window.soundManager.setSFXVolume(this.value/100)">
         </div>
 
         <div class="pause-option">
             <div class="pause-label">// SUPORTE TÁTICO (REAL-TIME BOTS)</div>
             <div class="pause-btn-row">
-                <button class="pause-btn" onclick="spawnBotManual(true)">+ BOTS ALIADOS</button>
-                <button class="pause-btn orange" onclick="spawnBotManual(false)">+ BOTS INIMIGOS</button>
+                <button class="pause-btn" id="btn-add-ally">+ BOTS ALIADOS</button>
+                <button class="pause-btn orange" id="btn-add-enemy">+ BOTS INIMIGOS</button>
             </div>
         </div>
 
-        <button class="pause-btn"
-            style="width: 100%; max-width: 300px; border-color: #00ff00; color: #00ff00; margin: 5px 0; padding: 5px; font-size: 0.7rem;"
-            onclick="openHudEditor()">✏️ EDITAR HUD / BOTÕES</button>
+        <button class="pause-btn" id="btn-hud-editor"
+            style="width: 100%; max-width: 300px; border-color: #00ff00; color: #00ff00; margin: 5px 0; padding: 5px; font-size: 0.7rem;">✏️
+            EDITAR HUD / BOTÕES</button>
 
-        <button class="pause-btn yellow" style="width: 100%; max-width: 300px; margin-bottom: 5px; padding: 10px;"
-            onclick="togglePause()">CONTINUAR OPERAÇÃO</button>
-        <button class="pause-btn red" style="width: 100%; max-width: 300px; padding: 10px;"
-            onclick="abortGame()">ABORTAR</button>
+        <button class="pause-btn yellow" id="btn-resume"
+            style="width: 100%; max-width: 300px; margin-bottom: 5px; padding: 10px;">CONTINUAR OPERAÇÃO</button>
+        <button class="pause-btn red" id="btn-abort"
+            style="width: 100%; max-width: 300px; padding: 10px;">ABORTAR</button>
     </div>
+
 
 
     <!-- HUD -->
@@ -868,6 +881,52 @@
                 // Fullscreen button
                 addMobileHandler('btn-fullscreen', function () {
                     toggleFullScreen();
+                });
+
+                // ========== PAUSE MENU BUTTONS ==========
+                // Resume button
+                addMobileHandler('btn-resume', function () {
+                    togglePause();
+                });
+
+                // Abort button
+                addMobileHandler('btn-abort', function () {
+                    if (typeof abortGame === 'function') {
+                        abortGame();
+                    } else {
+                        location.reload();
+                    }
+                });
+
+                // Add ally bots button
+                addMobileHandler('btn-add-ally', function () {
+                    if (typeof spawnBotManual === 'function') {
+                        spawnBotManual(true);
+                    }
+                });
+
+                // Add enemy bots button
+                addMobileHandler('btn-add-enemy', function () {
+                    if (typeof spawnBotManual === 'function') {
+                        spawnBotManual(false);
+                    }
+                });
+
+                // HUD Editor button
+                addMobileHandler('btn-hud-editor', function () {
+                    if (typeof openHudEditor === 'function') {
+                        openHudEditor();
+                    }
+                });
+
+                // ========== HUD BUTTONS ==========
+                // Run/Sprint button (toggle)
+                addMobileHandler('btn-run', function () {
+                    if (typeof window.isRunning !== 'undefined') {
+                        window.isRunning = !window.isRunning;
+                        const btn = document.getElementById('btn-run');
+                        if (btn) btn.classList.toggle('active', window.isRunning);
+                    }
                 });
             }
         })();
