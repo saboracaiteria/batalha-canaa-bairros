@@ -1115,7 +1115,7 @@ function animate() {
     if (isPlaying && bots.length > 0 && !initialBotsSpawned) initialBotsSpawned = true;
 
     // Update Counts
-    const elEnemies = document.getElementById('count-alive');
+    const elEnemies = document.getElementById('count-enemies');
     const elAllies = document.getElementById('count-allies');
     if (elEnemies) elEnemies.innerText = enemyBots.length;
     if (elAllies) elAllies.innerText = alliedBots.length;
@@ -1828,11 +1828,20 @@ window.initGame = (mode) => {
             set: (val) => { isRunning = val; }
         });
 
-        // 🎵 START BACKGROUND MUSIC
-        soundManager.init().then(() => {
-            soundManager.playBGM('gameplay');
-            console.log('🎵 Background music started!');
-        }).catch(e => console.warn('Sound init failed:', e));
+        // 🎵 START BACKGROUND MUSIC (with retry for mobile autoplay restrictions)
+        async function startBGM() {
+            try {
+                await soundManager.init();
+                soundManager.playBGM('gameplay');
+                console.log('🎵 Background music started!');
+            } catch (e) {
+                console.warn('Sound init failed, retrying in 2s:', e);
+                setTimeout(() => {
+                    soundManager.playBGM('gameplay');
+                }, 2000);
+            }
+        }
+        startBGM();
 
         if (mode === 'multi') {
             // 🌐 MULTIPLAYER: Reuse existing network or connect
