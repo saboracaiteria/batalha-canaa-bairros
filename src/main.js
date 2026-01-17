@@ -33,6 +33,13 @@ console.log(`
 let scene, camera, renderer, clock, playerGroup, charModel, zoneMesh, sunObj;
 let cameraYaw = 0, cameraPitch = 0, vY = 0, jumps = 0;
 let isPlaying = false, isPaused = false, isRunning = false, isADS = false, isShooting = false, isFPS = false, isMultiplayer = false;
+// 📷 COD Mobile Camera System
+let lastFireTime = 0;  // Track last shot for auto-ADS
+let isManualFiring = false; // Button-triggered shooting
+let isFiring = false; // Active shooting state (for auto-ADS)
+const CAM_LERP_SPEED = 0.15;  // Camera smoothing speed
+const AUTO_ADS_TIMEOUT = 500; // ms to stay in FPS view after shooting
+let camTargetPos = null; // Will be THREE.Vector3 after init
 let currentWeapon = 'AR', grenadeType = 'explosive', currentGameMode = 'solo';
 let bullets = [], bots = [], obstacles = [], obstacleBoxes = [], grenades = [], effects = [], medkits = [];
 let otherPlayers = {}; // 🌐 Multiplayer peers
@@ -1065,26 +1072,73 @@ function animate() {
         }
     });
 
-    // Camera - PORTED LOGIC (WITH CLAMP FIX)
-    if (isFPS || (isADS && currentWeapon === 'SNIPER')) {
+    // 📷 COD Mobile Camera System (Auto-ADS + Lerping)
+    // Initialize camTargetPos if needed
+    if (!camTargetPos) camTargetPos = new THREE.Vector3();
+
+    // Track firing for auto-ADS (reference code pattern)
+    const now = Date.now();
+    const timeSinceLastFire = now - lastFireTime;
+    const isShootingActive = isShooting || isManualFiring || isFiring || timeSinceLastFire < AUTO_ADS_TIMEOUT;
+
+    // Reset isFiring after timeout
+    if (timeSinceLastFire >= AUTO_ADS_TIMEOUT && !isManualFiring && !isShooting) {
+        isFiring = false;
+    }
+
+    // Force FPS view when shooting in TPS mode (auto-ADS)
+    const isThirdPerson = !isFPS;
+    const shouldUseADS = isADS || isShootingActive;
+    const forceFPS = isThirdPerson && shouldUseADS;
+    const shouldUseFPS = isFPS || forceFPS;
+
+    if (shouldUseFPS) {
+        // --- FPS MODE (or Auto-ADS) ---
         charModel.visible = false;
-        // CORREÇÃO ALTURA DA MIRA FPS 5.3
-        camera.position.copy(playerGroup.position).add(tempVec.set(0, 5.3, 0));
+
+        // Target: Camera at player head height
+        camTargetPos.copy(playerGroup.position).add(tempVec.set(0, 5.3, 0));
+
+        // Lerp camera position for smooth transition
+        camera.position.lerp(camTargetPos, CAM_LERP_SPEED * 2);
         camera.rotation.set(cameraPitch, cameraYaw, 0, 'YXZ');
+
+        // FOV zoom when aiming (45° when shooting/aiming)
+        const targetFOV = shouldUseADS ? 45 : cfg.fov;
+        camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.15);
+        camera.updateProjectionMatrix();
     } else {
+        // --- TPS MODE (Normal third person) ---
         charModel.visible = true;
-        const dist = isADS ? 10.0 : 16.0;
+
+        const dist = 16.0;
         const orbitY = Math.sin(-cameraPitch) * dist;
         const orbitXZ = Math.cos(-cameraPitch) * dist;
         const rightDir = tempVec.set(1, 0, 0).applyAxisAngle(tempVec2.set(0, 1, 0), cameraYaw);
-        // CORREÇÃO ALTURA DA MIRA TPS 5.3
-        camera.position.copy(playerGroup.position).add(tempVec2.set(Math.sin(cameraYaw) * orbitXZ, Math.max(1.0, 5.3 + orbitY), Math.cos(cameraYaw) * orbitXZ).add(rightDir.clone().multiplyScalar(3.0)));
+
+        // Target: Orbital camera behind and to the side of player
+        camTargetPos.copy(playerGroup.position).add(
+            tempVec2.set(
+                Math.sin(cameraYaw) * orbitXZ,
+                Math.max(1.0, 5.3 + orbitY),
+                Math.cos(cameraYaw) * orbitXZ
+            ).add(rightDir.clone().multiplyScalar(3.0))
+        );
+
+        // Lerp camera position for smooth transition
+        camera.position.lerp(camTargetPos, CAM_LERP_SPEED);
         camera.lookAt(playerGroup.position.x + rightDir.x * 3, playerGroup.position.y + 5.3, playerGroup.position.z + rightDir.z * 3);
+
+        // Reset FOV when not aiming
+        camera.fov = THREE.MathUtils.lerp(camera.fov, cfg.fov, 0.1);
+        camera.updateProjectionMatrix();
     }
 
-    // Shooting
-    if (isShooting && Date.now() - lastShot > (currentWeapon === 'SNIPER' ? 1200 : 120)) {
+    // Shooting (supports both isShooting and isManualFiring)
+    if ((isShooting || isManualFiring) && Date.now() - lastShot > (currentWeapon === 'SNIPER' ? 1200 : 120)) {
+        isFiring = true; // Mark as actively firing for auto-ADS
         lastShot = Date.now();
+        lastFireTime = Date.now(); // Track for auto-ADS timeout
         shootBullet();
     }
 
